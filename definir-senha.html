@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BT — Defina sua senha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+:root{
+  --gold:#C9A84C;--gold2:#E8C96D;--gold3:#A07830;--gold-pale:#F5EDD4;
+  --black:#0A0A08;--black2:#141410;--black3:#1E1E18;
+  --bg-app:#F4F1EA;--bg-surface:#FFFFFF;
+  --text1:#0A0A08;--text2:#5A5040;--text3:#9A9080;
+  --success:#2D7A4F;--danger:#8B2020;
+  --radius:8px;--radius-lg:14px;
+  --font-d:'Cormorant Garamond',Georgia,serif;
+  --font-b:'Jost',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font-b);
+  background-color:var(--bg-app);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23C9A84C' stroke-opacity='0.06' stroke-width='1.5'%3E%3Ctext x='30' y='50' font-family='Georgia,serif' font-size='28' font-weight='600' fill='%23C9A84C' fill-opacity='0.05' stroke='none'%3ER%24%3C/text%3E%3Ccircle cx='180' cy='40' r='18'/%3E%3Ctext x='180' y='47' font-family='Georgia,serif' font-size='18' fill='%23C9A84C' fill-opacity='0.05' stroke='none' text-anchor='middle'%3E%24%3C/text%3E%3Crect x='130' y='120' width='56' height='30' rx='3'/%3E%3Ccircle cx='158' cy='135' r='8'/%3E%3Ctext x='40' y='160' font-family='Georgia,serif' font-size='32' font-weight='600' fill='%23C9A84C' fill-opacity='0.05' stroke='none'%3E%24%3C/text%3E%3Ccircle cx='200' cy='200' r='13'/%3E%3Ctext x='90' y='215' font-family='Georgia,serif' font-size='20' font-weight='600' fill='%23C9A84C' fill-opacity='0.05' stroke='none'%3ER%24%3C/text%3E%3C/g%3E%3C/svg%3E");
+  background-repeat:repeat;
+  color:var(--text1);
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:2rem 1rem;
+}
+.card{
+  background:var(--bg-surface);
+  border-radius:var(--radius-lg);
+  box-shadow:0 1px 3px rgba(0,0,0,.04), 0 16px 40px rgba(20,18,10,.08);
+  max-width:420px;width:100%;
+  padding:2.6rem 2.2rem;
+  border:1px solid rgba(0,0,0,.05);
+}
+.icon-success{
+  width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,var(--success) 0%,#1F5A38 100%);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:26px;margin:0 auto 1.2rem;
+  box-shadow:0 8px 20px rgba(45,122,79,.3);
+}
+.brand-mark{
+  font-family:var(--font-d);font-size:1.3rem;font-weight:600;
+  letter-spacing:.03em;color:var(--black);text-align:center;margin-bottom:1.8rem;
+}
+.brand-mark span{color:var(--gold3)}
+.ph2{font-family:var(--font-d);font-size:1.6rem;font-weight:600;text-align:center;margin-bottom:.4rem}
+.ps2{font-size:13px;color:var(--text3);text-align:center;margin-bottom:1.8rem;line-height:1.5}
+
+.field{margin-bottom:1.1rem}
+.field label{
+  display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:.4rem;font-weight:500;
+}
+.field input{
+  width:100%;padding:.8rem .95rem;border:1px solid rgba(0,0,0,.12);
+  border-radius:var(--radius);font-size:14px;font-family:var(--font-b);
+  background:var(--bg-app);color:var(--text1);transition:all .2s;
+}
+.field input:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,168,76,.12)}
+
+.btn-primary{
+  width:100%;padding:.9rem;
+  background:linear-gradient(135deg,var(--black) 0%,#1E1E18 100%);
+  color:var(--gold2);
+  border:none;border-radius:var(--radius);font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:600;font-family:var(--font-b);cursor:pointer;
+  transition:all .25s;margin-top:.5rem;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 8px 20px rgba(10,10,8,.2);
+}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(10,10,8,.3)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.msg{
+  font-size:12.5px;padding:.65rem .85rem;border-radius:var(--radius);
+  margin-bottom:1.1rem;display:none;
+}
+.msg.err{background:rgba(139,32,32,.08);color:var(--danger);display:block}
+.msg.ok{background:rgba(45,122,79,.08);color:var(--success);display:block}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="icon-success"><i class="ti ti-check"></i></div>
+  <div class="brand-mark">BT <span>·</span> Gestão Financeira</div>
+  <div class="ph2">Pagamento confirmado!</div>
+  <div class="ps2">Falta só um passo: crie sua senha de acesso para começar a usar o dashboard.</div>
+
+  <div class="msg" id="form-msg"></div>
+
+  <div class="field">
+    <label>Email usado na compra</label>
+    <input type="email" id="def-email" placeholder="seu@email.com">
+  </div>
+  <div class="field">
+    <label>Crie sua senha</label>
+    <input type="password" id="def-senha" placeholder="Mínimo 6 caracteres">
+  </div>
+  <div class="field">
+    <label>Confirme sua senha</label>
+    <input type="password" id="def-senha2" placeholder="Repita a senha">
+  </div>
+
+  <button class="btn-primary" id="def-btn" onclick="definirSenha()">
+    Acessar meu dashboard <i class="ti ti-arrow-right"></i>
+  </button>
+</div>
+
+<script>
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbz06niUc5ADqiRKHtmxWksk6ha_6G2tqMbdjK4GAZggc2dH4HqlQNl62trDxfLb4981/exec'
+};
+
+// Pré-preenche o email se vier na URL (?email=...)
+(function(){
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get('email');
+  if(email) document.getElementById('def-email').value = email;
+})();
+
+function showMsg(text, type){
+  const el = document.getElementById('form-msg');
+  el.textContent = text;
+  el.className = 'msg ' + type;
+}
+
+async function apiCall(payload){
+  const res = await fetch(CONFIG.API_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'},
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+async function definirSenha(){
+  const email = document.getElementById('def-email').value.trim();
+  const senha = document.getElementById('def-senha').value.trim();
+  const senha2 = document.getElementById('def-senha2').value.trim();
+  const btn = document.getElementById('def-btn');
+
+  if(!email || !senha || !senha2){
+    showMsg('Preencha todos os campos.', 'err');
+    return;
+  }
+  if(senha !== senha2){
+    showMsg('As senhas não coincidem.', 'err');
+    return;
+  }
+  if(senha.length < 6){
+    showMsg('A senha deve ter pelo menos 6 caracteres.', 'err');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try{
+    const r = await apiCall({ action: 'definirSenha', email, senha });
+    if(r.ok){
+      showMsg('Senha criada! Redirecionando para o login...', 'ok');
+      setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+    } else {
+      showMsg(r.error || 'Não foi possível salvar a senha.', 'err');
+      btn.disabled = false; btn.textContent = 'Acessar meu dashboard';
+    }
+  } catch(err){
+    showMsg('Erro de conexão. Tente novamente.', 'err');
+    btn.disabled = false; btn.textContent = 'Acessar meu dashboard';
+  }
+}
+</script>
+</body>
+</html>
