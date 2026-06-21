@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BT — Gestão Financeira</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+:root{
+  --gold:#C9A84C;--gold2:#E8C96D;--gold3:#A07830;--gold-pale:#F5EDD4;
+  --black:#0A0A08;--black2:#141410;--black3:#1E1E18;
+  --bg-app:#F4F1EA;--bg-surface:#FFFFFF;
+  --text1:#0A0A08;--text2:#5A5040;--text3:#9A9080;
+  --success:#2D7A4F;--danger:#8B2020;
+  --radius:8px;--radius-lg:14px;
+  --font-d:'Cormorant Garamond',Georgia,serif;
+  --font-b:'Jost',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-b);
+  background-color:var(--bg-app);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23C9A84C' stroke-opacity='0.06' stroke-width='1.5'%3E%3C!-- R$ symbol --%3E%3Ctext x='30' y='50' font-family='Georgia,serif' font-size='28' font-weight='600' fill='%23C9A84C' fill-opacity='0.05' stroke='none'%3ER%24%3C/text%3E%3C!-- coin --%3E%3Ccircle cx='180' cy='40' r='18'/%3E%3Ctext x='180' y='47' font-family='Georgia,serif' font-size='18' fill='%23C9A84C' fill-opacity='0.05' stroke='none' text-anchor='middle'%3E%24%3C/text%3E%3C!-- bill --%3E%3Crect x='130' y='120' width='56' height='30' rx='3'/%3E%3Ccircle cx='158' cy='135' r='8'/%3E%3C!-- dollar sign --%3E%3Ctext x='40' y='160' font-family='Georgia,serif' font-size='32' font-weight='600' fill='%23C9A84C' fill-opacity='0.05' stroke='none'%3E%24%3C/text%3E%3C!-- coin small --%3E%3Ccircle cx='200' cy='200' r='13'/%3E%3C!-- R$ small --%3E%3Ctext x='90' y='215' font-family='Georgia,serif' font-size='20' font-weight='600' fill='%23C9A84C' fill-opacity='0.05' stroke='none'%3ER%24%3C/text%3E%3C/g%3E%3C/svg%3E");
+  background-repeat:repeat;
+  color:var(--text1);
+  min-height:100vh;
+}
+
+/* ===== Top bar with login ===== */
+.topbar{
+  background:var(--black);
+  padding:1.1rem 2rem;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:1rem;
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+.brand-mark{
+  font-family:var(--font-d);font-size:1.4rem;font-weight:600;
+  letter-spacing:.03em;color:#fff;
+}
+.brand-mark span{color:var(--gold)}
+
+.login-inline{
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+  flex-wrap:wrap;
+}
+.login-inline input{
+  padding:.55rem .85rem;border:1px solid rgba(255,255,255,.15);
+  border-radius:var(--radius);font-size:13px;font-family:var(--font-b);
+  background:rgba(255,255,255,.06);color:#fff;width:150px;
+}
+.login-inline input::placeholder{color:rgba(255,255,255,.4)}
+.login-inline input:focus{outline:none;border-color:var(--gold)}
+.login-inline .btn-login{
+  padding:.55rem 1.1rem;background:var(--gold);color:var(--black);
+  border:none;border-radius:var(--radius);font-size:11.5px;letter-spacing:.08em;
+  text-transform:uppercase;font-weight:600;font-family:var(--font-b);cursor:pointer;
+  white-space:nowrap;transition:background .2s;
+}
+.login-inline .btn-login:hover{background:var(--gold2)}
+.login-inline .btn-login:disabled{opacity:.5;cursor:not-allowed}
+.login-err{
+  font-size:11.5px;color:#E89A9A;width:100%;text-align:right;display:none;
+}
+.login-err.show{display:block}
+
+@media (max-width:680px){
+  .topbar{flex-direction:column;align-items:stretch}
+  .login-inline{justify-content:stretch}
+  .login-inline input{flex:1;min-width:120px}
+}
+
+/* ===== Hero ===== */
+.hero{
+  text-align:center;
+  padding:4rem 1.5rem 3rem;
+  max-width:760px;
+  margin:0 auto;
+}
+.hero-eyebrow{
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--gold3);font-weight:600;margin-bottom:1rem;
+}
+.hero h1{
+  font-family:var(--font-d);font-size:2.8rem;font-weight:600;line-height:1.15;
+  margin-bottom:1rem;
+}
+.hero h1 em{font-style:italic;color:var(--gold3)}
+.hero p{
+  font-size:15px;color:var(--text2);line-height:1.6;max-width:520px;margin:0 auto 1.6rem;
+}
+.hero-cta{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.85rem 1.8rem;background:var(--black);color:var(--gold2);
+  border:none;border-radius:var(--radius);font-size:12px;letter-spacing:.08em;
+  text-transform:uppercase;font-weight:500;font-family:var(--font-b);cursor:pointer;
+  transition:background .2s;
+}
+.hero-cta:hover{background:var(--black3)}
+
+@media (max-width:680px){
+  .hero h1{font-size:2.1rem}
+}
+
+/* ===== Plans section ===== */
+.plans-section{
+  padding:1rem 1.5rem 5rem;
+  max-width:1180px;
+  margin:0 auto;
+  position:relative;
+}
+.plans-section::before{
+  content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:90%;max-width:600px;height:280px;
+  background:radial-gradient(ellipse at center, rgba(201,168,76,.12) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.plans-head{text-align:center;margin-bottom:3rem;position:relative;z-index:1}
+.plans-head .eyebrow-mini{
+  display:inline-block;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--gold3);font-weight:600;margin-bottom:.8rem;
+  padding:5px 14px;border:1px solid rgba(201,168,76,.3);border-radius:30px;
+  background:rgba(201,168,76,.06);
+}
+.plans-head .ph{font-family:var(--font-d);font-size:2.4rem;font-weight:600;line-height:1.15}
+.plans-head .ph em{font-style:italic;color:var(--gold3)}
+.plans-head .ps{font-size:14px;color:var(--text2);margin-top:.6rem}
+
+.plans-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:1.5rem;
+  margin-top:2.5rem;
+  align-items:stretch;
+  position:relative;
+  z-index:1;
+}
+@media (max-width:860px){
+  .plans-grid{grid-template-columns:1fr;max-width:380px;margin:2.5rem auto 0}
+}
+
+/* Plan card — base */
+.plan-tile{
+  background:var(--bg-surface);
+  border-radius:var(--radius-lg);
+  border:1.5px solid rgba(0,0,0,.06);
+  padding:2.2rem 1.9rem;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  transition:transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s, border-color .35s;
+  opacity:0;animation:planRise .7s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.plan-tile:nth-child(1){animation-delay:.05s}
+.plan-tile:nth-child(2){animation-delay:.18s}
+.plan-tile:nth-child(3){animation-delay:.31s}
+@keyframes planRise{
+  from{opacity:0;transform:translateY(28px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.plan-tile:hover{transform:translateY(-6px);box-shadow:0 22px 50px rgba(20,18,10,.1);border-color:rgba(201,168,76,.35)}
+
+/* Featured card — richer treatment */
+.plan-tile.feat{
+  border-color:var(--gold);
+  background:
+    linear-gradient(155deg,#fff 0%,#FBF5E2 60%,var(--gold-pale) 100%);
+  box-shadow:0 18px 40px rgba(201,168,76,.22), inset 0 1px 0 rgba(255,255,255,.6);
+  transform:translateY(-8px);
+}
+.plan-tile.feat:hover{transform:translateY(-14px);box-shadow:0 28px 60px rgba(201,168,76,.32)}
+
+.feat-tag{
+  position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,var(--black) 0%,var(--black3) 100%);
+  color:var(--gold2);font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;padding:6px 16px;
+  border-radius:30px;font-weight:600;white-space:nowrap;
+  box-shadow:0 6px 16px rgba(10,10,8,.25);
+  display:inline-flex;align-items:center;gap:5px;
+}
+.feat-tag i{font-size:11px}
+
+.plan-tile .pname{font-family:var(--font-d);font-size:1.5rem;font-weight:600;margin-bottom:.25rem}
+.plan-tile .pdesc{font-size:12.5px;color:var(--text3);margin-bottom:1.6rem;min-height:32px;line-height:1.5}
+
+.price-row{display:flex;align-items:baseline;gap:.45rem;margin-bottom:.2rem}
+.price-old-big{font-size:14px;color:var(--text3);text-decoration:line-through;font-weight:400}
+.price-main-big{font-family:var(--font-d);font-size:2.8rem;font-weight:700;color:var(--black);letter-spacing:-.01em}
+.plan-tile.feat .price-main-big{
+  background:linear-gradient(135deg,var(--gold3) 0%,var(--black) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.price-unit{font-size:13px;color:var(--text3)}
+.price-billed{font-size:11.5px;color:var(--text3);margin-bottom:1.2rem}
+.price-save{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;background:linear-gradient(135deg,rgba(45,122,79,.12) 0%,rgba(45,122,79,.04) 100%);
+  color:var(--success);border:1px solid rgba(45,122,79,.18);
+  padding:4px 11px;border-radius:30px;font-weight:600;margin-bottom:1.6rem;width:fit-content;
+}
+.price-save i{font-size:12px}
+
+.plan-feats{list-style:none;margin-bottom:1.6rem;flex-grow:1}
+.plan-feats li{
+  font-size:12.8px;color:var(--text2);padding:.45rem 0;
+  display:flex;align-items:flex-start;gap:.6rem;line-height:1.45;
+}
+.plan-feats li .feat-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:18px;height:18px;border-radius:50%;
+  background:rgba(201,168,76,.15);color:var(--gold3);
+  font-size:11px;flex-shrink:0;margin-top:1px;
+}
+.plan-tile.feat .plan-feats li .feat-icon{
+  background:linear-gradient(135deg,var(--gold) 0%,var(--gold3) 100%);
+  color:#fff;
+  box-shadow:0 2px 6px rgba(201,168,76,.4);
+}
+
+.btn-plan{
+  width:100%;padding:.95rem;border:none;border-radius:var(--radius);
+  font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;
+  font-family:var(--font-b);cursor:pointer;transition:all .28s cubic-bezier(.2,.8,.2,1);
+  position:relative;overflow:hidden;
+}
+.btn-plan.dark{background:var(--black);color:var(--gold2)}
+.btn-plan.dark:hover{background:var(--black3);transform:translateY(-1px);box-shadow:0 8px 20px rgba(10,10,8,.2)}
+.btn-plan.gold{
+  background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 50%,var(--gold) 100%);
+  background-size:200% 100%;color:var(--black);
+  box-shadow:0 6px 18px rgba(201,168,76,.35);
+}
+.btn-plan.gold:hover{background-position:100% 0;transform:translateY(-2px);box-shadow:0 10px 24px rgba(201,168,76,.5)}
+.btn-plan i{margin-left:6px;transition:transform .25s}
+.btn-plan:hover i{transform:translateX(3px)}
+
+.trust-row{
+  display:flex;justify-content:center;gap:2.5rem;margin-top:3.5rem;flex-wrap:wrap;
+  position:relative;z-index:1;
+}
+.trust-item{
+  display:flex;align-items:center;gap:.55rem;font-size:12px;color:var(--text2);
+  padding:.55rem 1.1rem;border-radius:30px;background:rgba(255,255,255,.5);
+  border:1px solid rgba(0,0,0,.05);
+}
+.trust-item i{color:var(--gold3);font-size:15px}
+
+/* ===== Modal ===== */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(10,10,8,.65);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;
+  padding:1.5rem;z-index:100;
+  opacity:0;transition:opacity .25s;
+}
+.modal-overlay.open{display:flex;opacity:1}
+.modal-box{
+  background:var(--bg-surface);border-radius:var(--radius-lg);
+  max-width:920px;width:100%;padding:0;position:relative;
+  max-height:92vh;overflow:hidden;
+  display:grid;grid-template-columns:1.05fr .95fr;
+  transform:scale(.94);opacity:0;
+  transition:all .35s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 30px 80px rgba(10,10,8,.4);
+}
+.modal-overlay.open .modal-box{transform:scale(1);opacity:1}
+@media (max-width:820px){
+  .modal-box{grid-template-columns:1fr;max-height:94vh;overflow-y:auto}
+}
+
+/* Modal LEFT — showcase */
+.modal-showcase{
+  background:linear-gradient(160deg,var(--black) 0%,#1A1A14 100%);
+  color:#EFE9D6;padding:2.5rem 2.2rem;position:relative;overflow:hidden;
+}
+.modal-showcase::before{
+  content:'';position:absolute;top:-50%;right:-30%;
+  width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle, rgba(201,168,76,.18) 0%, transparent 60%);
+  pointer-events:none;
+}
+.showcase-eyebrow{
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--gold);font-weight:600;margin-bottom:.8rem;position:relative;
+}
+.showcase-title{
+  font-family:var(--font-d);font-size:1.7rem;font-weight:600;
+  line-height:1.2;margin-bottom:.5rem;position:relative;
+}
+.showcase-title em{font-style:italic;color:var(--gold2)}
+.showcase-sub{font-size:13px;color:rgba(239,233,214,.65);margin-bottom:1.8rem;line-height:1.5;position:relative}
+
+/* Feature grid in showcase */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;position:relative;margin-bottom:1.5rem}
+.feat-card{
+  background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.18);
+  border-radius:var(--radius);padding:.9rem .95rem;
+  opacity:0;transform:translateY(8px);
+  transition:all .35s;
+}
+.modal-overlay.open .feat-card{opacity:1;transform:translateY(0)}
+.modal-overlay.open .feat-card:nth-child(1){transition-delay:.15s}
+.modal-overlay.open .feat-card:nth-child(2){transition-delay:.22s}
+.modal-overlay.open .feat-card:nth-child(3){transition-delay:.29s}
+.modal-overlay.open .feat-card:nth-child(4){transition-delay:.36s}
+.feat-icon-circle{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--gold) 0%,var(--gold3) 100%);
+  color:var(--black);font-size:17px;margin-bottom:.5rem;
+  box-shadow:0 6px 14px rgba(201,168,76,.3);
+}
+.feat-name{font-family:var(--font-d);font-size:14px;font-weight:600;color:#fff;margin-bottom:2px}
+.feat-desc{font-size:11px;color:rgba(239,233,214,.55);line-height:1.4}
+
+/* Mini dashboard mockup */
+.dash-preview{
+  background:rgba(255,255,255,.03);border:1px solid rgba(201,168,76,.15);
+  border-radius:10px;padding:.85rem;position:relative;
+}
+.dash-preview-label{
+  font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+  color:rgba(201,168,76,.7);margin-bottom:.55rem;
+}
+.dash-img{
+  width:100%;border-radius:7px;display:block;
+  border:1px solid rgba(201,168,76,.2);
+  box-shadow:0 8px 24px rgba(0,0,0,.3);
+}
+.mock-row{display:flex;gap:.4rem;margin-bottom:.4rem}
+.mock-pill{
+  height:14px;border-radius:4px;flex:1;
+  background:linear-gradient(90deg,rgba(201,168,76,.35) 0%,rgba(201,168,76,.15) 100%);
+}
+.mock-pill.sm{flex:.4}
+.mock-pill.dark{background:linear-gradient(90deg,rgba(239,233,214,.18) 0%,rgba(239,233,214,.05) 100%)}
+.mock-bar-row{display:flex;align-items:flex-end;gap:.35rem;height:46px;margin-top:.7rem;padding:0 .2rem}
+.mock-bar{
+  flex:1;background:linear-gradient(180deg,var(--gold) 0%,var(--gold3) 100%);
+  border-radius:3px 3px 0 0;opacity:.4;
+  animation:barRise .9s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.modal-overlay.open .mock-bar{opacity:.4}
+@keyframes barRise{from{height:0}}
+
+/* Modal RIGHT — form */
+.modal-form-side{padding:2.3rem 2.1rem;overflow-y:auto;position:relative}
+.modal-close{
+  position:absolute;top:1.1rem;right:1.1rem;background:rgba(0,0,0,.05);border:none;
+  width:32px;height:32px;border-radius:50%;font-size:18px;color:var(--text2);
+  cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;z-index:2;
+}
+.modal-close:hover{background:var(--black);color:var(--gold2);transform:rotate(90deg)}
+
+.modal-plan-summary{
+  background:linear-gradient(135deg,var(--gold-pale) 0%,#FBF5E2 100%);
+  border:1px solid rgba(201,168,76,.25);
+  border-radius:var(--radius);
+  padding:1rem 1.15rem;margin-bottom:1.6rem;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-plan-summary .mp-label{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold3);font-weight:600;margin-bottom:2px}
+.modal-plan-summary .mp-name{font-family:var(--font-d);font-size:1.1rem;font-weight:600;color:var(--black)}
+.modal-plan-summary .mp-price{font-family:var(--font-d);font-size:1.3rem;font-weight:700;color:var(--gold3)}
+.modal-plan-summary .mp-price-sm{font-size:11px;color:var(--text3);text-align:right}
+
+.ph2{font-family:var(--font-d);font-size:1.5rem;font-weight:600;margin-bottom:.3rem}
+.ps2{font-size:12.5px;color:var(--text3);margin-bottom:1.5rem}
+
+.field{margin-bottom:1.1rem}
+.field label{
+  display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:.4rem;font-weight:500;
+}
+.field input{
+  width:100%;padding:.8rem .95rem;border:1px solid rgba(0,0,0,.12);
+  border-radius:var(--radius);font-size:14px;font-family:var(--font-b);
+  background:var(--bg-app);color:var(--text1);transition:all .2s;
+}
+.field input:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,168,76,.12)}
+
+.btn-primary{
+  width:100%;padding:.95rem;
+  background:linear-gradient(135deg,var(--black) 0%,#1E1E18 100%);
+  color:var(--gold2);
+  border:none;border-radius:var(--radius);font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:600;font-family:var(--font-b);cursor:pointer;
+  transition:all .25s;margin-top:.4rem;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 8px 20px rgba(10,10,8,.2);
+}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(10,10,8,.3)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.msg{
+  font-size:12.5px;padding:.6rem .8rem;border-radius:var(--radius);
+  margin-bottom:1rem;display:none;
+}
+.msg.err{background:rgba(139,32,32,.08);color:var(--danger);display:block}
+.msg.ok{background:rgba(45,122,79,.08);color:var(--success);display:block}
+
+</style>
+</head>
+<body>
+
+<!-- ===== TOP BAR — LOGIN ===== -->
+<div class="topbar">
+  <div class="brand-mark">BT <span>·</span> Gestão Financeira</div>
+  <div class="login-inline">
+    <input type="email" id="login-email" placeholder="Email">
+    <input type="password" id="login-senha" placeholder="Senha">
+    <button class="btn-login" id="login-btn" onclick="fazerLogin()">Entrar</button>
+  </div>
+  <div class="login-err" id="login-err"></div>
+</div>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <div class="hero-eyebrow">Controle financeiro sem complicação</div>
+  <h1>Saiba exatamente <em>para onde</em><br>vai cada real do seu mês</h1>
+  <p>Um dashboard completo para organizar receitas, despesas, parcelas no crédito e objetivos financeiros — tudo em um só lugar, sem planilha complicada.</p>
+  <button class="hero-cta" onclick="document.getElementById('planos').scrollIntoView()">
+    Ver planos <i class="ti ti-arrow-down"></i>
+  </button>
+</div>
+
+<!-- ===== PLANS ===== -->
+<div class="plans-section" id="planos">
+  <div class="plans-head">
+    <div class="eyebrow-mini">Escolha o seu</div>
+    <div class="ph">Comece a controlar seu dinheiro <em>hoje</em></div>
+    <div class="ps">Cancele quando quiser. Sem multa, sem burocracia, sem complicação.</div>
+  </div>
+
+  <div class="plans-grid" id="plans-grid"><!-- preenchido via JS --></div>
+
+  <div class="trust-row">
+    <div class="trust-item"><i class="ti ti-lock"></i> Pagamento seguro</div>
+    <div class="trust-item"><i class="ti ti-refresh-alert"></i> Cancele quando quiser</div>
+    <div class="trust-item"><i class="ti ti-device-floppy"></i> Dados sempre salvos</div>
+    <div class="trust-item"><i class="ti ti-shield-check"></i> Garantia de 7 dias</div>
+  </div>
+</div>
+
+<!-- ===== MODAL — CADASTRO ===== -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()" aria-label="Fechar">&times;</button>
+
+    <!-- SHOWCASE COLUMN -->
+    <div class="modal-showcase">
+      <div class="showcase-eyebrow">Você está prestes a ganhar</div>
+      <div class="showcase-title">Controle total da sua <em>vida financeira</em></div>
+      <div class="showcase-sub">Tudo que você precisa pra parar de perder dinheiro sem perceber.</div>
+
+      <div class="feat-grid">
+        <div class="feat-card">
+          <div class="feat-icon-circle"><i class="ti ti-wallet"></i></div>
+          <div class="feat-name">Receitas & Despesas</div>
+          <div class="feat-desc">Mês a mês, com detalhes</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon-circle"><i class="ti ti-credit-card"></i></div>
+          <div class="feat-name">Parcelas no Crédito</div>
+          <div class="feat-desc">Controle automático</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon-circle"><i class="ti ti-target"></i></div>
+          <div class="feat-name">Metas & Objetivos</div>
+          <div class="feat-desc">Calculadora de aporte</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon-circle"><i class="ti ti-chart-pie"></i></div>
+          <div class="feat-name">Dashboard Visual</div>
+          <div class="feat-desc">Gráficos em tempo real</div>
+        </div>
+      </div>
+
+      <div class="dash-preview">
+        <div class="dash-preview-label">Pré-visualização do dashboard</div>
+        <img src="dashboard-preview.png" alt="Dashboard BT em funcionamento" class="dash-img" onerror="this.style.display='none';document.getElementById('dash-img-fallback').style.display='block'">
+        <div id="dash-img-fallback" style="display:none;font-size:11px;color:rgba(239,233,214,.5);text-align:center;padding:1rem">Preview do dashboard</div>
+      </div>
+    </div>
+
+    <!-- FORM COLUMN -->
+    <div class="modal-form-side">
+      <div class="modal-plan-summary">
+        <div>
+          <div class="mp-label">Plano selecionado</div>
+          <div class="mp-name" id="modal-plan-name">Trimestral</div>
+        </div>
+        <div>
+          <div class="mp-price" id="modal-plan-price">R$ 39,90</div>
+          <div class="mp-price-sm" id="modal-plan-sub">por mês</div>
+        </div>
+      </div>
+
+      <div class="ph2">Criar minha conta</div>
+      <div class="ps2">Leva menos de 30 segundos</div>
+
+      <div class="msg" id="signup-msg"></div>
+
+      <div class="field">
+        <label>Nome completo</label>
+        <input type="text" id="signup-nome" placeholder="Seu nome">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="seu@email.com">
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <input type="password" id="signup-senha" placeholder="Crie uma senha">
+      </div>
+      <div class="field">
+        <label>Confirmar senha</label>
+        <input type="password" id="signup-senha2" placeholder="Repita a senha">
+      </div>
+
+      <button class="btn-primary" id="signup-btn" onclick="fazerCadastro()">
+        Continuar para pagamento <i class="ti ti-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =======================================================
+   CONFIGURAÇÃO
+   ======================================================= */
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbzbmmoXV8byB3u19XB60nSwVXtpyXr08Hqvm_Gybtrye-6P5L-8ZOPFmKNYSV52j3cL/exec'
+};
+
+/* =======================================================
+   PLANOS
+   ======================================================= */
+const PRECO_BASE = 49.90;
+const PLANOS = [
+  {
+    id: 'mensal',
+    nome: 'Mensal',
+    desc: 'Ideal para testar sem compromisso',
+    mesesCobranca: 1,
+    precoMes: PRECO_BASE,
+    featured: false,
+    feats: ['Acesso completo ao dashboard', 'Controle de receitas e despesas', 'Suporte por email'],
+    checkoutUrl: 'https://pay.kiwify.com.br/qFEe5kz'
+  },
+  {
+    id: 'trimestral',
+    nome: 'Trimestral',
+    desc: 'O favorito de quem quer economizar',
+    mesesCobranca: 3,
+    precoMes: PRECO_BASE - 10,
+    featured: true,
+    feats: ['Tudo do plano Mensal', 'Controle de parcelas no crédito', 'Metas e objetivos financeiros', 'Economize R$ 30 no total'],
+    checkoutUrl: 'https://pay.kiwify.com.br/JpNkBtj'
+  },
+  {
+    id: 'anual',
+    nome: 'Anual',
+    desc: 'Máxima economia no longo prazo',
+    mesesCobranca: 12,
+    precoMes: PRECO_BASE - 20,
+    featured: false,
+    feats: ['Tudo do plano Trimestral', 'Relatórios anuais detalhados', 'Suporte prioritário', 'Economize R$ 240 no total'],
+    checkoutUrl: 'https://pay.kiwify.com.br/z0CJe02'
+  }
+];
+
+let planoSelecionado = 'trimestral';
+
+function fmtBRL(v){
+  return 'R$ ' + v.toFixed(2).replace('.', ',');
+}
+
+function renderPlanos(){
+  const grid = document.getElementById('plans-grid');
+  grid.innerHTML = PLANOS.map(p => {
+    const totalCobranca = p.precoMes * p.mesesCobranca;
+    const economiaMes = PRECO_BASE - p.precoMes;
+    const economiaTotal = economiaMes * p.mesesCobranca;
+    const featTag = p.featured ? '<div class="feat-tag"><i class="ti ti-star-filled"></i> Mais escolhido</div>' : '';
+    const priceOld = economiaMes > 0
+      ? '<span class="price-old-big">' + fmtBRL(PRECO_BASE) + '</span>'
+      : '';
+    const saveTag = economiaTotal > 0
+      ? '<div class="price-save"><i class="ti ti-discount"></i> Você economiza ' + fmtBRL(economiaTotal) + '</div>'
+      : '<div class="price-save" style="visibility:hidden">placeholder</div>';
+    const featsHtml = p.feats.map(f => '<li><span class="feat-icon"><i class="ti ti-check"></i></span>' + f + '</li>').join('');
+    const billedLabel = p.mesesCobranca === 1
+      ? 'Cobrado mensalmente'
+      : 'Cobrado ' + fmtBRL(totalCobranca) + ' a cada ' + p.mesesCobranca + ' meses';
+    const btnLabel = p.featured ? 'Quero economizar' : 'Assinar ' + p.nome;
+
+    return '<div class="plan-tile ' + (p.featured ? 'feat' : '') + '" data-plan="' + p.id + '">' +
+      featTag +
+      '<div class="pname">' + p.nome + '</div>' +
+      '<div class="pdesc">' + p.desc + '</div>' +
+      '<div class="price-row">' + priceOld + '<span class="price-main-big">' + fmtBRL(p.precoMes) + '</span><span class="price-unit">/mês</span></div>' +
+      '<div class="price-billed">' + billedLabel + '</div>' +
+      saveTag +
+      '<ul class="plan-feats">' + featsHtml + '</ul>' +
+      '<button class="btn-plan ' + (p.featured ? 'gold' : 'dark') + '" data-plan-btn="' + p.id + '">' + btnLabel + ' <i class="ti ti-arrow-right"></i></button>' +
+    '</div>';
+  }).join('');
+
+  // Attach click handlers (avoids inline-onclick string-escaping issues)
+  grid.querySelectorAll('[data-plan-btn]').forEach(btn => {
+    btn.addEventListener('click', () => openModal(btn.getAttribute('data-plan-btn')));
+  });
+}
+
+function openModal(planId){
+  planoSelecionado = planId;
+  const p = PLANOS.find(x => x.id === planId);
+  document.getElementById('modal-plan-name').textContent = p.nome;
+  document.getElementById('modal-plan-price').textContent = fmtBRL(p.precoMes);
+  const sub = document.getElementById('modal-plan-sub');
+  if(sub){
+    if(p.mesesCobranca === 1){
+      sub.textContent = 'por mês';
+    } else {
+      sub.textContent = 'por mês · cobrado a cada ' + p.mesesCobranca + ' meses';
+    }
+  }
+  document.getElementById('signup-msg').className = 'msg';
+  document.getElementById('signup-msg').textContent = '';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+document.getElementById('modal-overlay').addEventListener('click', function(e){
+  if(e.target === this) closeModal();
+});
+
+function showMsg(elId, text, type){
+  const el = document.getElementById(elId);
+  el.textContent = text;
+  el.className = 'msg ' + type;
+}
+
+async function apiCall(payload){
+  const res = await fetch(CONFIG.API_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'},
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+async function fazerLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value.trim();
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-err');
+
+  if(!email || !senha){
+    errEl.textContent = 'Preencha email e senha.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  // Conta de teste fixa (não depende da planilha/API) — útil para validar o fluxo
+  if(email.toLowerCase() === 'teste' && senha === 'teste123'){
+    sessionStorage.setItem('bt_user', JSON.stringify({ok:true, nome:'Teste', email:'teste', plano:'mensal', status:'ativo'}));
+    window.location.href = 'index.html';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = '...';
+  try{
+    const r = await apiCall({action: 'login', email, senha});
+    if(r.ok){
+      sessionStorage.setItem('bt_user', JSON.stringify(r));
+      window.location.href = 'index.html';
+    } else {
+      errEl.textContent = r.error || 'Não foi possível entrar.';
+      errEl.classList.add('show');
+    }
+  } catch(err){
+    errEl.textContent = 'Erro de conexão.';
+    errEl.classList.add('show');
+  }
+  btn.disabled = false; btn.textContent = 'Entrar';
+}
+
+async function fazerCadastro(){
+  const nome = document.getElementById('signup-nome').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const senha = document.getElementById('signup-senha').value.trim();
+  const senha2 = document.getElementById('signup-senha2').value.trim();
+  const btn = document.getElementById('signup-btn');
+
+  if(!nome || !email || !senha || !senha2){
+    showMsg('signup-msg', 'Preencha todos os campos.', 'err');
+    return;
+  }
+  if(senha !== senha2){
+    showMsg('signup-msg', 'As senhas não coincidem.', 'err');
+    return;
+  }
+  if(senha.length < 6){
+    showMsg('signup-msg', 'A senha deve ter pelo menos 6 caracteres.', 'err');
+    return;
+  }
+
+  const planoAtual = PLANOS.find(p => p.id === planoSelecionado);
+
+  btn.disabled = true; btn.textContent = 'Criando conta...';
+  try{
+    const r = await apiCall({
+      action: 'cadastrar',
+      nome, email, senha,
+      plano: planoSelecionado,
+      valorPlano: planoAtual.precoMes
+    });
+    if(r.ok){
+      showMsg('signup-msg', 'Conta criada! Redirecionando para o pagamento...', 'ok');
+      // Passa o email como parâmetro para a Kiwify devolver no webhook
+      // e conseguirmos identificar qual usuário pagou.
+      const checkoutUrl = planoAtual.checkoutUrl + '?email=' + encodeURIComponent(email);
+      setTimeout(() => { window.location.href = checkoutUrl; }, 1200);
+    } else {
+      showMsg('signup-msg', r.error || 'Não foi possível criar a conta.', 'err');
+      btn.disabled = false; btn.textContent = 'Continuar para pagamento';
+    }
+  } catch(err){
+    showMsg('signup-msg', 'Erro de conexão. Verifique a URL da API.', 'err');
+    btn.disabled = false; btn.textContent = 'Continuar para pagamento';
+  }
+}
+
+renderPlanos();
+</script>
+</body>
+</html>
