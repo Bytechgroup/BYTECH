@@ -673,14 +673,18 @@ html[data-theme="light"] .conta-sub-bar-wrap{background:rgba(0,0,0,.08)}
 }
 
 /* ===== PREFERÊNCIAS APLICADAS ===== */
-/* Status de Pagamentos — donut + lista */
-.pago-grid{display:grid;grid-template-columns:280px 1fr;gap:22px;align-items:center}
-.pago-list{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;padding-right:4px}
-.pago-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
-  background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:9px 12px}
-.pago-row-nome{font-family:var(--font-d);font-size:13px;font-weight:600;color:var(--text1);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.pago-row-val{font-family:var(--font-d);font-size:12.5px;font-weight:700;color:var(--text2);white-space:nowrap}
+/* Status de Pagamentos — tabela pago / não pago */
+.ptab{width:100%;border-collapse:collapse}
+.ptab th{font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--text3);
+  font-weight:700;padding:0 10px 9px;border-bottom:1px solid var(--border2);text-align:center}
+.ptab td{padding:10px;border-bottom:1px solid var(--border2);font-size:13px;vertical-align:middle}
+.ptab tbody tr:last-child td{border-bottom:none}
+.ptab tbody tr{transition:background .15s}
+.ptab tbody tr:hover{background:var(--card2)}
+.pt-nome{font-family:var(--font-d);font-weight:600;color:var(--text1)}
+.pt-venc{text-align:center;color:var(--text3);font-size:12px;white-space:nowrap}
+.pt-val{text-align:right;font-family:var(--font-d);font-weight:700;color:var(--text2);white-space:nowrap}
+.pt-st{text-align:right;white-space:nowrap}
 .pago-badge{font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
   padding:3px 9px;border-radius:20px;white-space:nowrap}
 .pago-badge.ok{background:rgba(201,168,76,.14);color:var(--gold3);border:1px solid rgba(201,168,76,.35)}
@@ -693,8 +697,8 @@ html[data-theme="light"] .conta-sub-bar-wrap{background:rgba(0,0,0,.08)}
 .pago-kpi.pend .pk-v{color:#D8809D}
 .pago-kpi .pk-s{font-size:11px;color:var(--text3);margin-top:2px}
 @media (max-width:700px){
-  .pago-grid{grid-template-columns:1fr;gap:14px}
-  .pago-list{max-height:none}
+  .ptab th:nth-child(2),.ptab td:nth-child(2){display:none} /* vencimento sai no celular */
+  .ptab td{padding:9px 7px;font-size:12.5px}
 }
 /* header de card com controle à direita (quebra no mobile) */
 .card-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -1305,10 +1309,7 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
       <div class="ch">Status de Pagamentos</div>
       <div class="cs">Despesas pagas vs pendentes — mes selecionado</div>
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap" id="pago-kpis"></div>
-      <div class="pago-grid">
-        <div style="position:relative;height:230px"><canvas id="pagoDonut"></canvas></div>
-        <div id="pago-list" class="pago-list"></div>
-      </div>
+      <div id="pago-table"></div>
     </div>
     <!-- PARCELAS PROGRESS -->
     <div class="card chart-full" id="parcelasProgressCard" style="display:none">
@@ -1482,6 +1483,7 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
           <div class="cfg-info"><div class="cfg-t">Restaurar padrões</div><div class="cfg-d">Volta a aparência ao original (não apaga lançamentos)</div></div>
           <button class="cfg-btn" onclick="resetPrefs()">Restaurar</button>
         </div>
+        <div class="cfg-nota" id="btBuildInfo" style="text-align:right"></div>
       </div>
     </div>
   </div>
@@ -1809,7 +1811,7 @@ function parseBR(s){
 function fmtInput(v){var n=Number(v)||0;if(n===0)return '';return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 // Formata data ISO (yyyy-mm-dd) para BR (dd/mm/yyyy)
 function fmtDateBR(iso){if(!iso)return '';var p=String(iso).split('-');if(p.length!==3)return iso;return p[2]+'/'+p[1]+'/'+p[0];}
-function dc(id){if(charts[id]){try{var _cv=charts[id].canvas;if(_cv&&_cv.dataset)delete _cv.dataset.chartArmed;}catch(e){}charts[id].destroy();delete charts[id];}}
+function dc(id){if(charts[id]){try{var _cv=charts[id].canvas;if(_cv){if(_cv.dataset){delete _cv.dataset.chartArmed;_cv.dataset.chartReset='0';}if(typeof _chartIO!=='undefined'&&_chartIO){try{_chartIO.unobserve(_cv);}catch(e){}}}}catch(e){}charts[id].destroy();delete charts[id];}}
 function pct(a,b){return b>0?Math.round((a-b)/b*100):0;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
@@ -2098,6 +2100,7 @@ function showPage(p,btn){
   if(p==='fixo'){showPatTab('saldos',null);var tb=document.getElementById('patTabsBar');if(tb)tb.style.display='flex';}
   if(p==='config'){try{syncCfgUI();}catch(e){}}
   syncBottomNav(p);
+  try{_armChartSoon();}catch(e){}
   if(typeof updateSidebarSaldo==='function'){ if(p==='dashboard'){try{animarSaldoSidebar();}catch(e){}} else {try{updateSidebarSaldo();}catch(e){}} }
   try{renderContasPagar();}catch(e){}
 }
@@ -3882,8 +3885,7 @@ function renderDash(){
   var pDt=desp.map(function(d){return d.real;});
   var pC=desp.map(function(_,i){return CPOOL[i%CPOOL.length].c;});
   var pT=pDt.reduce(function(a,b){return a+b;},0);
-  renderCatBars(desp,pT);
-  dc('pie');
+  try{ renderCatBars(desp,pT); }catch(e){ console.error('catBars',e); }
   
 
   /* DONUT */
@@ -3936,9 +3938,9 @@ function renderDash(){
   var parcArr=Object.values(parcelMap);
   var parcCard=document.getElementById('parcelasProgressCard');
   if(parcCard){
-    parcCard.style.display='block';
+    // só existe card de parcelas se existir compra parcelada de verdade
+    parcCard.style.display=(parcArr.length>0)?'block':'none';
     if(parcArr.length>0){
-      parcCard.style.display='block';
       var totalParcelasG=parcArr.reduce(function(a,b){return a+b.totalParc;},0);
       var totalPagoG=0;
       parcArr.forEach(function(pg){
@@ -4000,6 +4002,7 @@ function renderDash(){
       }).join('');
       document.getElementById('parcelas-progress-list').innerHTML=summaryKpis+itemsHtml;
       var totWrap=document.getElementById('parcelas-total-wrap');
+      if(totWrap&&parcArr.length<=1){ totWrap.style.display='none'; try{dc('parcelasConsolidadoChart');}catch(e){} }
       if(totWrap&&parcArr.length>1){
         totWrap.style.display='block';
         dc('parcelasConsolidadoChart');
@@ -4010,21 +4013,12 @@ function renderDash(){
   charts['parcelasConsolidadoChart']=new Chart(pcc,{type:'bar',data:{labels:parcArr.map(function(pg){return pg.nome.substring(0,16);}),datasets:[{label:'Pagas',data:pgD,backgroundColor:'rgba(76,175,80,.85)',borderRadius:4,borderSkipped:false},{label:'Pendentes',data:peD,backgroundColor:'rgba(230,57,70,.7)',borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#9A9080',font:{size:11}}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{stepSize:1}}}}});}}
       }
     }else{
-      var creditCount=0,parcelCount=0;
-      for(var dbg=0;dbg<12;dbg++){
-        ((data[dbg]||emptyM()).despesas||[]).forEach(function(d){
-          if(d.meio==='Credito'){creditCount++;}
-          if(d.meio==='Credito'&&d.parcelas>1&&!d.isParcel){parcelCount++;}
-        });
-      }
-      document.getElementById('parcelas-progress-list').innerHTML=
-        '<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px">'
-        +(parcelCount>0
-          ?'<span style="color:var(--gold3)">'+parcelCount+' compra(s) parcelada(s) salva(s)</span><br>Verifique se o mes está salvo corretamente.'
-          :creditCount>0
-          ?creditCount+' lançamento(s) no crédito com 1x (sem parcelas).<br><small>Selecione 2x ou mais no seletor de parcelas e clique <strong>Salvar Mes</strong>.</small>'
-          :'Sem compras no crédito. Adicione uma despesa → meio Crédito → selecione 3x → Salvar Mes.')
-        +'</div>';
+      // sem compra parcelada: card some por completo (nada de placeholder)
+      var plist=document.getElementById('parcelas-progress-list');
+      if(plist)plist.innerHTML='';
+      var totWrap0=document.getElementById('parcelas-total-wrap');
+      if(totWrap0)totWrap0.style.display='none';
+      try{dc('parcelasConsolidadoChart');}catch(e){}
     }
   
 
@@ -4137,20 +4131,25 @@ function renderDash(){
   document.getElementById('pago-kpis').innerHTML=
     '<div class="pago-kpi"><div class="pk-l">Pago</div><div class="pk-v">'+fmt(totalPago2)+'</div><div class="pk-s">'+pagos2.length+' lançamento'+(pagos2.length===1?'':'s')+' · '+pctPago2b+'%</div></div>'+
     '<div class="pago-kpi pend"><div class="pk-l">Pendente</div><div class="pk-v">'+fmt(totalPend2)+'</div><div class="pk-s">'+pends2.length+' lançamento'+(pends2.length===1?'':'s')+' · '+(100-pctPago2b)+'%</div></div>';
-  document.getElementById('pago-list').innerHTML=_pgItens
+  var _pgRows=_pgItens
     .sort(function(a,b){return (isMthPaid(a)?1:0)-(isMthPaid(b)?1:0) || effectiveAmt(b)-effectiveAmt(a);})
     .map(function(d){
       var v=effectiveAmt(d),paid=isMthPaid(d);
       var emj=(typeof catEmoji==='function')?catEmoji(d.nome||''):'';
-      return '<div class="pago-row">'+
-        '<span class="pago-row-nome">'+(emj?emj+' ':'')+esc(d.nome||'Sem nome')+'</span>'+
-        '<span style="display:flex;align-items:center;gap:9px;flex-shrink:0">'+
-          '<span class="pago-row-val">'+fmt(v)+'</span>'+
-          '<span class="pago-badge '+(paid?'ok':'pend')+'">'+(paid?'Pago':'Pendente')+'</span>'+
-        '</span>'+
-      '</div>';
+      var venc=(d.venc||d.data_||'');
+      var vencTxt='—';
+      if(venc){var pp=String(venc).split('-');if(pp.length===3)vencTxt=pp[2]+'/'+pp[1];}
+      return '<tr>'+
+        '<td class="pt-nome">'+(emj?emj+' ':'')+esc(d.nome||'Sem nome')+'</td>'+
+        '<td class="pt-venc">'+vencTxt+'</td>'+
+        '<td class="pt-val">'+fmt(v)+'</td>'+
+        '<td class="pt-st"><span class="pago-badge '+(paid?'ok':'pend')+'">'+(paid?'Pago':'Pendente')+'</span></td>'+
+      '</tr>';
     }).join('');
-  dc('pagoDonut');charts['pagoDonut']=new Chart(document.getElementById('pagoDonut'),{type:'doughnut',data:{labels:['Pago','Pendente'],datasets:[{data:[totalPago2||.001,totalPend2||.001],backgroundColor:['#C9A84C','#C4526E'],borderWidth:2,borderColor:_chartCardBg()}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{labels:{color:'#9A9080',font:{size:11}}},tooltip:{callbacks:{label:function(c){return c.label+': '+fmt(c.raw);}}}}}});
+  document.getElementById('pago-table').innerHTML=_pgItens.length?
+    '<table class="ptab"><thead><tr>'+
+    '<th style="text-align:left">Descrição</th><th>Vencimento</th><th style="text-align:right">Valor</th><th style="text-align:right">Status</th>'+
+    '</tr></thead><tbody>'+_pgRows+'</tbody></table>':'';
 }
 
 // ===== CONEXÃO SUPABASE + GUARDIÃO DE LOGIN =====
@@ -4227,31 +4226,72 @@ function _chartCardBg(){
   catch(e){return 'rgba(0,0,0,0)';}
 }
 
-/* ===== GRÁFICOS: animam gradualmente quando você chega neles ao rolar ===== */
-var _chartIO=('IntersectionObserver' in window)?new IntersectionObserver(function(es){
-  es.forEach(function(en){
-    if(!en.isIntersecting)return;
-    var k=en.target.dataset.chartkey;
-    if(k&&_chartsRaw[k]){try{_chartsRaw[k].update();}catch(e){}}
-    _chartIO.unobserve(en.target);
+/* ===== GRÁFICOS: animam gradualmente quando você chega neles ao rolar =====
+   REGRA DE OURO: a animação é enfeite. Um gráfico NUNCA pode ficar em branco.
+   Por isso todo chart que sofre reset() fica marcado (chartReset=1) e existe
+   uma rede de segurança (scroll/resize/visibilidade/timer) que o revela de volta. */
+function _cvNaTela(r){ return r.width>0&&r.height>0&&r.top<(window.innerHeight||0)*.92&&r.bottom>0; }
+
+function _revelarChart(cv){
+  if(!cv||!cv.dataset)return;
+  var k=cv.dataset.chartkey;
+  if(k&&_chartsRaw[k]){try{_chartsRaw[k].update();}catch(e){}}
+  cv.dataset.chartReset='0';
+  if(_chartIO){try{_chartIO.unobserve(cv);}catch(e){}}
+}
+
+/* Varre todos os charts congelados e acorda os que estão de fato visíveis. */
+function _revelarVisiveis(){
+  Object.keys(_chartsRaw).forEach(function(k){
+    var ch=_chartsRaw[k];if(!ch||!ch.canvas)return;
+    var cv=ch.canvas;
+    if(!cv.dataset||cv.dataset.chartReset!=='1')return;
+    if(_cvNaTela(cv.getBoundingClientRect()))_revelarChart(cv);
   });
-},{threshold:.3}):null;
-var _armT=null;
-function _armChartSoon(){if(!_chartIO)return;clearTimeout(_armT);_armT=setTimeout(_armCharts,60);}
+}
+
+var _chartIO=('IntersectionObserver' in window)?new IntersectionObserver(function(es){
+  es.forEach(function(en){ if(en.isIntersecting)_revelarChart(en.target); });
+},{threshold:.15}):null;
+
+var _armT=null,_retryT=null,_retryN=0,_netT=null,_revT=null;
+
+function _armChartSoon(){_retryN=0;clearTimeout(_armT);_armT=setTimeout(_armCharts,60);}
+
 function _armCharts(){
+  var pendente=false;
   Object.keys(_chartsRaw).forEach(function(k){
     var ch=_chartsRaw[k];if(!ch||!ch.canvas)return;
     var cv=ch.canvas;
     if(cv.dataset.chartArmed==='1')return;
     var r=cv.getBoundingClientRect();
-    // canvas sem tamanho (página/aba oculta): NÃO congela — deixa o Chart.js
-    // redimensionar sozinho quando aparecer; tenta armar de novo depois.
-    if(!(r.width>0&&r.height>0))return;
+    // canvas sem tamanho (página/aba oculta): não congela e tenta de novo depois
+    if(!(r.width>0&&r.height>0)){pendente=true;return;}
+    // criado com a aba oculta (canvas 0x0)? garante o redimensionamento antes de exibir
+    if(!ch.width||!ch.height){try{ch.resize();}catch(e){}}
     cv.dataset.chartkey=k;cv.dataset.chartArmed='1';
+    // sem IntersectionObserver não existe como "acordar" o gráfico: nunca congela
+    if(!_chartIO)return;
     var vis=r.top<window.innerHeight*.92&&r.bottom>0;
-    if(!vis){try{ch.reset();}catch(e){}_chartIO.observe(cv);}
+    if(!vis){
+      try{ch.reset();cv.dataset.chartReset='1';}catch(e){cv.dataset.chartReset='0';}
+      try{_chartIO.observe(cv);}catch(e){_revelarChart(cv);}
+    }
   });
+  // rede de segurança: se o IO não disparar, o timer revela o que está na tela
+  clearTimeout(_netT); _netT=setTimeout(_revelarVisiveis,1200);
+  // aba oculta na hora da criação: rearma quando ela ganhar tamanho
+  clearTimeout(_retryT);
+  if(pendente&&_retryN<25){ _retryN++; _retryT=setTimeout(_armCharts,250); }
+  else _retryN=0;
+  _revelarVisiveis();
 }
+
+function _revelarSoon(){ clearTimeout(_revT); _revT=setTimeout(_revelarVisiveis,80); }
+// capture:true pega scroll de qualquer container interno, não só o window
+document.addEventListener('scroll',_revelarSoon,true);
+window.addEventListener('resize',function(){_revelarSoon();_armChartSoon();});
+document.addEventListener('visibilitychange',function(){ if(!document.hidden)_armChartSoon(); });
 
 /* ===== LANÇAMENTOS: tempo real no painel lateral + linhas que crescem ao digitar ===== */
 (function(){
@@ -4634,7 +4674,7 @@ function renderCatBars(desp,total){
       charts['pie']=new Chart(cvP,{type:'doughnut',data:{labels:itens.map(function(x){return x.nome;}),datasets:[{data:itens.map(function(x){return Math.round(x.v*100)/100;}),backgroundColor:itens.map(function(_,i){return CORES_P[i%CORES_P.length];}),borderWidth:2,borderColor:_chartCardBg()}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.label+': '+fmt(c.raw);}}}}}});
     }
   }else{
-  if(pieWrap)pieWrap.style.display='none';
+  if(pieWrap){ try{dc('pie');}catch(e){} pieWrap.innerHTML=''; pieWrap.style.display='none'; }
   box.style.display='';
   var cores=['#C9A84C','#7B93C4','#D8CBA8','#C46B8A','#8FBF9F','#A98FD4','#C4A07B','#8FA6BF'];
   var maior=itens[0].v||1;
@@ -4830,6 +4870,14 @@ function renderCorrida(m, md, des, dPl){
   }
   card.style.display='';
 }
+
+/* ===== CARIMBO DE BUILD — confira se o site está servindo a versão nova ===== */
+var BT_BUILD='2026-07-09.3';
+try{
+  console.log('%c[ByTech] build '+BT_BUILD,'color:#C9A84C;font-weight:bold');
+  var _bi=document.getElementById('btBuildInfo');
+  if(_bi)_bi.textContent='Versão instalada: '+BT_BUILD;
+}catch(e){}
 </script>
 <!-- COPY MODAL -->
 <div class="confirm-ov" id="copyModal" onclick="if(event.target===this)closeCopyModal()">
