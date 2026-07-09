@@ -16,7 +16,9 @@ document.addEventListener('DOMContentLoaded', function(){
     Chart.defaults.color = '#B0ABA2';
     Chart.defaults.font.family = "'Inter',system-ui,sans-serif";
     Chart.defaults.borderColor = 'rgba(255,255,255,.10)';
-    Chart.defaults.animation = { duration: 900, easing: 'easeOutQuart' };
+    // animação global DESLIGADA: com ela ligada, qualquer re-render em corrida
+    // (marcar pago, trocar mês, sync) podia flagrar o canvas no meio-tempo em branco
+    Chart.defaults.animation = false;
     Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(30,25,20,.88)';
     Chart.defaults.plugins.tooltip.titleColor = '#FAF7F0';
     Chart.defaults.plugins.tooltip.bodyColor = '#EDE8DC';
@@ -1572,6 +1574,33 @@ const CPOOL=[
 ];
 let curEM=new Date().getMonth(),curDM=new Date().getMonth(),curIM=new Date().getMonth(),curInvM=new Date().getMonth();
 let _chartsRaw={},charts=new Proxy(_chartsRaw,{set:function(t,k,v){t[k]=v;try{_armChartSoon();}catch(e){}return true;}}),_uid=0;
+
+/* ===== BLINDAGEM DOS GRÁFICOS =====
+   1) new Chart num canvas ocupado NUNCA lança "Canvas is already in use":
+      o chart antigo é destruído sozinho. Uma exceção dessas no meio do
+      renderDash matava todos os gráficos seguintes até dar F5.
+   2) Animações desligadas: o gráfico é pintado inteiro, de forma síncrona,
+      no instante da criação — sem janela de canvas em branco.
+   3) Vigia (no _armCharts + setInterval): chart que nasceu 0x0 numa aba
+      oculta é redimensionado assim que ganhar espaço. */
+(function(){
+  if(typeof Chart==='undefined')return;
+  try{ Chart.defaults.animation=false; }catch(e){}
+  try{
+    var Orig=window.Chart;
+    function ChartSeguro(ctx,cfg){
+      try{
+        var el=(ctx&&ctx.canvas)?ctx.canvas:ctx; // aceita canvas ou context2d
+        var ex=Orig.getChart(el);
+        if(ex)ex.destroy();
+      }catch(e){}
+      return new Orig(ctx,cfg);
+    }
+    ChartSeguro.prototype=Orig.prototype;
+    Object.setPrototypeOf(ChartSeguro,Orig); // preserva statics: defaults, register, getChart...
+    window.Chart=ChartSeguro;
+  }catch(e){}
+})();
 function uid(){return 'x'+(++_uid);}
 function emptyM(){return{receitas:[],despesas:[],deletedFixed:[]};}
 function emptyF(){return{pat_reserva:0,pat_investido:0,meta_reserva:0,meta_investido:0,pat_poupanca:0,meta_poupanca:0,aporte_poupanca:0,aportes:[],objetivos:[],investimentos:[],patHist:[],invMes:{},aporteMes:{}};}
@@ -4221,6 +4250,8 @@ function _armCharts(){
 
 window.addEventListener('resize',_armChartSoon);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden)_armChartSoon(); });
+// vigia permanente: se algum chart estiver 0x0 com espaço disponível, conserta sozinho
+setInterval(function(){try{_armCharts();}catch(e){}},1500);
 
 /* ===== LANÇAMENTOS: tempo real no painel lateral + linhas que crescem ao digitar ===== */
 (function(){
