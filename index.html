@@ -1829,7 +1829,7 @@ function parseBR(s){
 function fmtInput(v){var n=Number(v)||0;if(n===0)return '';return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 // Formata data ISO (yyyy-mm-dd) para BR (dd/mm/yyyy)
 function fmtDateBR(iso){if(!iso)return '';var p=String(iso).split('-');if(p.length!==3)return iso;return p[2]+'/'+p[1]+'/'+p[0];}
-function dc(id){if(charts[id]){try{var _cv=charts[id].canvas;if(_cv){if(_cv.dataset){delete _cv.dataset.chartArmed;_cv.dataset.chartReset='0';}if(typeof _chartIO!=='undefined'&&_chartIO){try{_chartIO.unobserve(_cv);}catch(e){}}}}catch(e){}charts[id].destroy();delete charts[id];}}
+function dc(id){if(charts[id]){try{charts[id].destroy();}catch(e){}delete charts[id];}}
 function pct(a,b){return b>0?Math.round((a-b)/b*100):0;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
@@ -3788,8 +3788,17 @@ function renderContasPagar(){
   }catch(e){}
 }
 
-function renderDash(){
+/* renderDash é chamado por vários caminhos quase ao mesmo tempo (marcar pago,
+   trocar mês, auto-save, eco do sync). Coalescemos tudo num render só, e o
+   rebuild pesado dos gráficos só roda com a página do dashboard visível —
+   se estiver oculta, fica marcada como "suja" e o showPage renderiza ao abrir. */
+var _rdT=null;
+function renderDash(){ clearTimeout(_rdT); _rdT=setTimeout(_renderDashNow,30); }
+
+function _renderDashNow(){
   try{updateSidebarSaldo();renderContasPagar();}catch(e){}
+  var _pgD=document.getElementById('page-dashboard');
+  if(_pgD&&!_pgD.classList.contains('active'))return; // showPage('dashboard') chama renderDash ao abrir
   var isYear=(dashView==='ano');
   var m=curDM,md=isYear?aggregateYear():(data[m]||emptyM());
   var periodoLabel=isYear?'Ano inteiro':MONTHS_FULL[m];
@@ -4182,35 +4191,15 @@ function _chartCardBg(){
   catch(e){return 'rgba(0,0,0,0)';}
 }
 
-/* ===== GRÁFICOS: animam gradualmente quando você chega neles ao rolar =====
-   REGRA DE OURO: a animação é enfeite. Um gráfico NUNCA pode ficar em branco.
-   Por isso todo chart que sofre reset() fica marcado (chartReset=1) e existe
-   uma rede de segurança (scroll/resize/visibilidade/timer) que o revela de volta. */
-function _cvNaTela(r){ return r.width>0&&r.height>0&&r.top<(window.innerHeight||0)*.92&&r.bottom>0; }
-
-function _revelarChart(cv){
-  if(!cv||!cv.dataset)return;
-  var k=cv.dataset.chartkey;
-  if(k&&_chartsRaw[k]){try{_chartsRaw[k].update();}catch(e){}}
-  cv.dataset.chartReset='0';
-  if(_chartIO){try{_chartIO.unobserve(cv);}catch(e){}}
-}
-
-/* Varre todos os charts congelados e acorda os que estão de fato visíveis. */
-function _revelarVisiveis(){
-  Object.keys(_chartsRaw).forEach(function(k){
-    var ch=_chartsRaw[k];if(!ch||!ch.canvas)return;
-    var cv=ch.canvas;
-    if(!cv.dataset||cv.dataset.chartReset!=='1')return;
-    if(_cvNaTela(cv.getBoundingClientRect()))_revelarChart(cv);
-  });
-}
-
-var _chartIO=('IntersectionObserver' in window)?new IntersectionObserver(function(es){
-  es.forEach(function(en){ if(en.isIntersecting)_revelarChart(en.target); });
-},{threshold:.15}):null;
-
-var _armT=null,_retryT=null,_retryN=0,_netT=null,_revT=null;
+/* ===== GRÁFICOS: SEM congelamento por rolagem =====
+   O efeito de "animar quando aparece" foi removido de vez: ele funcionava
+   dando reset() (canvas em branco) e devolvendo o desenho depois — e qualquer
+   corrida com re-render (marcar pago, trocar mês, sync) deixava gráficos
+   vazios. Agora um gráfico criado é um gráfico desenhado, sempre.
+   _armCharts só cuida de um caso: chart criado numa aba oculta (canvas 0x0),
+   que precisa de resize() quando a aba aparece. */
+var _chartIO=null; // mantido por compatibilidade com dc()
+var _armT=null,_retryT=null,_retryN=0;
 
 function _armChartSoon(){_retryN=0;clearTimeout(_armT);_armT=setTimeout(_armCharts,60);}
 
@@ -4219,34 +4208,18 @@ function _armCharts(){
   Object.keys(_chartsRaw).forEach(function(k){
     var ch=_chartsRaw[k];if(!ch||!ch.canvas)return;
     var cv=ch.canvas;
-    if(cv.dataset.chartArmed==='1')return;
     var r=cv.getBoundingClientRect();
-    // canvas sem tamanho (página/aba oculta): não congela e tenta de novo depois
+    // canvas sem tamanho (página/aba oculta): tenta de novo quando ganhar tamanho
     if(!(r.width>0&&r.height>0)){pendente=true;return;}
-    // criado com a aba oculta (canvas 0x0)? garante o redimensionamento antes de exibir
-    if(!ch.width||!ch.height){try{ch.resize();}catch(e){}}
-    cv.dataset.chartkey=k;cv.dataset.chartArmed='1';
-    // sem IntersectionObserver não existe como "acordar" o gráfico: nunca congela
-    if(!_chartIO)return;
-    var vis=r.top<window.innerHeight*.92&&r.bottom>0;
-    if(!vis){
-      try{ch.reset();cv.dataset.chartReset='1';}catch(e){cv.dataset.chartReset='0';}
-      try{_chartIO.observe(cv);}catch(e){_revelarChart(cv);}
-    }
+    // nasceu 0x0 e agora tem espaço? redesenha no tamanho certo
+    if(!ch.width||!ch.height){try{ch.resize();ch.update('none');}catch(e){}}
   });
-  // rede de segurança: se o IO não disparar, o timer revela o que está na tela
-  clearTimeout(_netT); _netT=setTimeout(_revelarVisiveis,1200);
-  // aba oculta na hora da criação: rearma quando ela ganhar tamanho
   clearTimeout(_retryT);
   if(pendente&&_retryN<25){ _retryN++; _retryT=setTimeout(_armCharts,250); }
   else _retryN=0;
-  _revelarVisiveis();
 }
 
-function _revelarSoon(){ clearTimeout(_revT); _revT=setTimeout(_revelarVisiveis,80); }
-// capture:true pega scroll de qualquer container interno, não só o window
-document.addEventListener('scroll',_revelarSoon,true);
-window.addEventListener('resize',function(){_revelarSoon();_armChartSoon();});
+window.addEventListener('resize',_armChartSoon);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden)_armChartSoon(); });
 
 /* ===== LANÇAMENTOS: tempo real no painel lateral + linhas que crescem ao digitar ===== */
