@@ -461,8 +461,6 @@ select.di{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   .modal-title{font-size:15px}
 
   /* === PARCELAS PROGRESS KPIs === */
-  #parcelas-progress-list>div:first-child{flex-direction:column!important}
-  #parcelas-progress-list>div:first-child>div{min-width:unset!important;width:100%!important}
 }
 
 /* MOBILE PEQUENO (480px e abaixo) */
@@ -1260,16 +1258,8 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
         <div class="card-head-row">
           <div><div class="ch">Despesas por categoria</div>
           <div class="cs">Onde o dinheiro foi — do maior para o menor gasto</div></div>
-          <div class="mini-seg" id="catTypeSeg">
-            <button data-v="barras" onclick="setCatStyle('barras')">Barras</button>
-            <button data-v="pizza" onclick="setCatStyle('pizza')">Pizza</button>
-          </div>
         </div>
         <div id="catBars" style="margin-top:.85rem"></div>
-        <div id="catPieWrap" style="display:none;margin-top:.5rem">
-          <div class="leg" id="legend-pie"></div>
-          <div style="position:relative;height:230px"><canvas id="pieChart"></canvas></div>
-        </div>
         <div class="insight" id="catInsight" style="display:none"></div>
       </div>
       <div class="card">
@@ -1311,16 +1301,7 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap" id="pago-kpis"></div>
       <div id="pago-table"></div>
     </div>
-    <!-- PARCELAS PROGRESS -->
-    <div class="card chart-full" id="parcelasProgressCard" style="display:none">
-      <div class="ch">Progresso das Parcelas</div>
-      <div class="cs">Percentual pago de cada item parcelado no credito</div>
-      <div id="parcelas-progress-list"></div>
-      <div id="parcelas-total-wrap" style="display:none;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid rgba(0,0,0,.07)">
-        <div style="font-size:13px;font-weight:600;font-family:var(--font-d);margin-bottom:.75rem">Consolidado — todas as parcelas</div>
-        <div style="position:relative;height:200px"><canvas id="parcelasConsolidadoChart"></canvas></div>
-      </div>
-    </div>
+
 
     <div class="card chart-full" style="display:none">
       <div class="ch">Resumo Anual por Categoria</div>
@@ -3922,106 +3903,6 @@ function renderDash(){
   dc('imprev');charts['imprev']=new Chart(document.getElementById('imprevChart'),{type:'bar',data:{labels:MONTHS,datasets:[{label:'Imprevistos',data:iDt,backgroundColor:iDt.map(function(_,i){return i===m?'#C4526E':'rgba(196,82,110,.35)';}),borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmt(c.raw);}}}},scales:{x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:0,font:{size:11}}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{callback:function(v){return 'R$'+Math.round(v/1000)+'k';}}}}}});
   document.getElementById('imp-dash-list').innerHTML=(imprevistos[m]||[]).length===0?'<span style="font-size:12px;color:var(--text3)">Nenhum imprevisto em '+MONTHS_FULL[m]+'</span>':(imprevistos[m]||[]).map(function(i){return '<span style="font-size:12px;background:#fdf2f2;color:var(--danger);padding:3px 10px;border-radius:20px;font-weight:500">'+i.desc+': '+fmt(i.val)+'</span>';}).join('');
 
-  /* PARCELAS PROGRESS */
-  var parcelMap={};
-  for(var pmi=0;pmi<12;pmi++){
-    ((data[pmi]||emptyM()).despesas||[]).forEach(function(d){
-      if(d.meio==='Credito'&&d.parcelas>1&&!d.isParcel&&d.nome){
-        var key=d.nome+'_'+pmi;
-        if(!parcelMap[key]){
-          var vParc=d.valorParc||(d.real||d.plan);
-          parcelMap[key]={nome:d.nome,totalParc:d.parcelas,originMonth:pmi,valorTotal:vParc*d.parcelas,valorParc:vParc,data_:d.data_};
-        }
-      }
-    });
-  }
-  var parcArr=Object.values(parcelMap);
-  var parcCard=document.getElementById('parcelasProgressCard');
-  if(parcCard){
-    // só existe card de parcelas se existir compra parcelada de verdade
-    parcCard.style.display=(parcArr.length>0)?'block':'none';
-    if(parcArr.length>0){
-      var totalParcelasG=parcArr.reduce(function(a,b){return a+b.totalParc;},0);
-      var totalPagoG=0;
-      parcArr.forEach(function(pg){
-        var originDesp2=((data[pg.originMonth]||emptyM()).despesas||[]).find(function(d){return d.nome===pg.nome&&d.meio==='Credito'&&d.parcelas>1&&!d.isParcel;});
-        var od2Total=originDesp2?(originDesp2.real||originDesp2.plan):0;
-      var od2PP=originDesp2?(originDesp2.pagoParcial||0):0;
-      var od2FullPaid=!!(originDesp2&&(originDesp2.pago||(od2PP>=od2Total&&od2Total>0)));
-      if(od2FullPaid){totalPagoG+=pg.totalParc;}
-      else if(originDesp2&&(od2PP>=(originDesp2.valorParc||od2Total)&&(originDesp2.valorParc||od2Total)>0))totalPagoG++;
-        for(var pi4=1;pi4<pg.totalParc;pi4++){
-          var tgtM4=(pg.originMonth+pi4)%12;
-          var pd=((data[tgtM4]||emptyM()).despesas||[]).find(function(d){return d.isParcel&&d.parcelOriginMonth===pg.originMonth&&d.nome.startsWith(pg.nome);});
-          if(pd&&(pd.pago||(pd.pagoParcial>=(pd.real||pd.plan)&&(pd.real||pd.plan)>0)))totalPagoG++;
-        }
-      });
-      var totalPendG=totalParcelasG-totalPagoG;
-      var pctGeralPago=totalParcelasG>0?Math.round(totalPagoG/totalParcelasG*100):0;
-      var summaryKpis='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:1rem">'+
-        '<div style="background:#f0faf4;border:1px solid rgba(45,122,79,.15);border-radius:var(--radius);padding:.75rem 1.25rem;flex:1;min-width:130px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#2D7A4F;margin-bottom:3px">Parcelas pagas</div><div style="font-family:var(--font-d);font-size:20px;font-weight:600;color:#2D7A4F">'+totalPagoG+'/'+totalParcelasG+'</div><div style="font-size:11px;color:#2D7A4F;margin-top:2px">'+pctGeralPago+'% do total</div></div>'+
-        '<div style="background:#fdf2f2;border:1px solid rgba(139,32,32,.12);border-radius:var(--radius);padding:.75rem 1.25rem;flex:1;min-width:130px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#8B2020;margin-bottom:3px">Parcelas pendentes</div><div style="font-family:var(--font-d);font-size:20px;font-weight:600;color:#8B2020">'+totalPendG+'</div><div style="font-size:11px;color:#8B2020;margin-top:2px">'+(100-pctGeralPago)+'% do total</div></div>'+
-        '<div style="background:var(--bg-surface);border:1px solid rgba(0,0,0,.06);border-radius:var(--radius);padding:.75rem 1.25rem;flex:1;min-width:130px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--text3);margin-bottom:3px">Itens parcelados</div><div style="font-family:var(--font-d);font-size:20px;font-weight:600">'+parcArr.length+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">compras no credito</div></div>'+
-      '</div>';
-      var itemsHtml=parcArr.map(function(pg){
-        var pagoCount=0;
-        var originDesp3=((data[pg.originMonth]||emptyM()).despesas||[]).find(function(d){return d.nome===pg.nome&&d.meio==='Credito'&&d.parcelas>1&&!d.isParcel;});
-        if(originDesp3&&(originDesp3.pago||(originDesp3.pagoParcial>=(originDesp3.valorParc||originDesp3.real||originDesp3.plan)&&(originDesp3.valorParc||originDesp3.real||originDesp3.plan)>0)))pagoCount++;
-        var monthPills='';
-        for(var mpi2=0;mpi2<pg.totalParc;mpi2++){
-          var tgtMi2=(pg.originMonth+mpi2)%12;
-          var isPaidM=false;
-          if(mpi2===0){
-            var od3Total=originDesp3?(originDesp3.real||originDesp3.plan):0;
-            var od3ValParc=originDesp3?(originDesp3.valorParc||od3Total):0;
-            var od3PP=originDesp3?(originDesp3.pagoParcial||0):0;
-            // Paid if: fully paid OR paid at least the parcel amount
-            isPaidM=!!(originDesp3&&(originDesp3.pago||(od3PP>=od3ValParc&&od3ValParc>0)));
-            // If full total paid, all pills are paid
-            var fullPaid=!!(originDesp3&&(originDesp3.pago||(od3PP>=od3Total&&od3Total>0)));
-          }
-          else{if(fullPaid){isPaidM=true;pagoCount++;}else{var pd2=((data[tgtMi2]||emptyM()).despesas||[]).find(function(d){return d.isParcel&&d.parcelOriginMonth===pg.originMonth&&d.nome.startsWith(pg.nome);});isPaidM=!!(pd2&&(pd2.pago||(pd2.pagoParcial>=(pd2.real||pd2.plan)&&(pd2.real||pd2.plan)>0)));if(isPaidM)pagoCount++;}}
-          monthPills+='<span title="'+(mpi2+1)+'/'+pg.totalParc+' - '+MONTHS[tgtMi2]+'" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:4px;font-size:9px;font-weight:600;background:'+(isPaidM?'#2D7A4F':'rgba(139,32,32,.15)')+';color:'+(isPaidM?'#fff':'#8B2020')+';cursor:default;margin:1px">'+(mpi2+1)+'</span>';
-        }
-        var pctPago2=fullPaid?100:Math.round(pagoCount/pg.totalParc*100);
-        var pendCount2=fullPaid?0:pg.totalParc-pagoCount;
-        var barColor2=pctPago2===100?'#2D7A4F':pctPago2>=50?'#C9A84C':'#8B2020';
-        var statusTxt2=pctPago2===100?'Quitado':pctPago2===0?'Nenhuma parcela paga':pagoCount+' de '+pg.totalParc+' pagas';
-        return '<div class="parc-prog-item">'+
-          '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">'+
-            '<div style="flex:1"><div style="font-size:13px;font-weight:600;font-family:var(--font-d)">'+pg.nome+'</div>'+
-            '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+pg.totalParc+'x de '+fmt(pg.valorParc)+' &nbsp;·&nbsp; Total: '+fmt(pg.valorTotal)+(pg.data_?' &nbsp;·&nbsp; Inicio: '+new Date(pg.data_+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'2-digit'}):'')+'</div>'+
-            '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:2px">'+monthPills+'</div></div>'+
-            '<div style="text-align:right;margin-left:16px"><div style="font-family:var(--font-d);font-size:26px;font-weight:700;color:'+barColor2+'">'+pctPago2+'%</div>'+
-            '<div style="font-size:10px;font-weight:500;color:'+barColor2+';letter-spacing:.05em">'+statusTxt2+'</div></div></div>'+
-          '<div class="parc-prog-bar-wrap"><div class="parc-prog-bar" style="width:'+pctPago2+'%;background:'+barColor2+'"></div></div>'+
-          '<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--text3)">'+
-            '<span style="color:#2D7A4F;font-weight:500">Pago: '+fmt(pagoCount*pg.valorParc)+'</span>'+
-            '<span>'+pctPago2+'% concluido · '+pendCount2+' restante(s)</span>'+
-            '<span style="color:#8B2020;font-weight:500">Pendente: '+fmt(pendCount2*pg.valorParc)+'</span></div></div>';
-      }).join('');
-      document.getElementById('parcelas-progress-list').innerHTML=summaryKpis+itemsHtml;
-      var totWrap=document.getElementById('parcelas-total-wrap');
-      if(totWrap&&parcArr.length<=1){ totWrap.style.display='none'; try{dc('parcelasConsolidadoChart');}catch(e){} }
-      if(totWrap&&parcArr.length>1){
-        totWrap.style.display='block';
-        dc('parcelasConsolidadoChart');
-        var pcc=document.getElementById('parcelasConsolidadoChart');
-        if(pcc){
-  var pgD=parcArr.map(function(pg){return pg.pagoCount||0;});
-  var peD=parcArr.map(function(pg){return pg.totalParc-(pg.pagoCount||0);});
-  charts['parcelasConsolidadoChart']=new Chart(pcc,{type:'bar',data:{labels:parcArr.map(function(pg){return pg.nome.substring(0,16);}),datasets:[{label:'Pagas',data:pgD,backgroundColor:'rgba(76,175,80,.85)',borderRadius:4,borderSkipped:false},{label:'Pendentes',data:peD,backgroundColor:'rgba(230,57,70,.7)',borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#9A9080',font:{size:11}}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{stepSize:1}}}}});}}
-      }
-    }else{
-      // sem compra parcelada: card some por completo (nada de placeholder)
-      var plist=document.getElementById('parcelas-progress-list');
-      if(plist)plist.innerHTML='';
-      var totWrap0=document.getElementById('parcelas-total-wrap');
-      if(totWrap0)totWrap0.style.display='none';
-      try{dc('parcelasConsolidadoChart');}catch(e){}
-    }
-  
-
   /* SUMMARY */
   var cM={};
   var hoje2=new Date();
@@ -4465,7 +4346,7 @@ function _voarParaPainel(rowEl,nome){
 
 /* ===== PREFERÊNCIAS DO APP (Configurações) ===== */
 var PREFS_PADRAO={tema:'dark',fonte:'inter',tamanho:'med',densidade:'confortavel',animacoes:'completo',
-  accent:'dourado',cantos:'suave',emojis:true,centavos:true,catStyle:'barras',
+  accent:'dourado',cantos:'suave',emojis:true,centavos:true,
   mostrarSaldo:true,mostrarContas:true,
   graficos:{corrida:true,dia:true,categoria:true,donut:true,comp:true,line:true,imprev:true},
   abas:{imprevistos:true,fixo:true,poupanca:true,objetivos:true,dashboard:true}};
@@ -4555,10 +4436,6 @@ function setPref(k,v){ prefs[k]=v; savePrefs(); applyPrefs(); }
 function _chartOn(k){ try{return !prefs||!prefs.graficos||prefs.graficos[k]!==false;}catch(e){return true;} }
 function setGraf(k,v){ if(!prefs.graficos)prefs.graficos={}; prefs.graficos[k]=!!v; savePrefs(); applyPrefs(); }
 var _lastCatDesp=null,_lastCatTot=0;
-function setCatStyle(v){
-  prefs.catStyle=(v==='pizza')?'pizza':'barras'; savePrefs();
-  try{ if(_lastCatDesp)renderCatBars(_lastCatDesp,_lastCatTot); else renderDash(); }catch(e){}
-}
 function setAba(k,v){
   var visiveis=Object.keys(prefs.abas).filter(function(x){return prefs.abas[x]!==false;});
   if(!v&&visiveis.length<=1&&prefs.abas[k]!==false){ alert('Mantenha ao menos uma aba além de Lançamentos.'); syncCfgUI(); return; }
@@ -4632,11 +4509,6 @@ function renderCatBars(desp,total){
   var box=document.getElementById('catBars'); if(!box)return;
   var card=box.closest('.card');
   if(!_chartOn('categoria')){ if(card)card.style.display='none'; return; }
-  // estado do toggle Barras|Pizza no próprio card
-  try{
-    var seg=document.getElementById('catTypeSeg');
-    if(seg)seg.querySelectorAll('button').forEach(function(b){b.classList.toggle('on',b.dataset.v===(prefs.catStyle||'barras'));});
-  }catch(e){}
   var grupos={};
   (desp||[]).forEach(function(d){
     var v=Number(d.real)||0; if(v<=0)return;
@@ -4649,7 +4521,6 @@ function renderCatBars(desp,total){
   if(!itens.length||!(total>0)){ if(card)card.style.display='none'; return; }
   if(card)card.style.display='';
   _lastCatDesp=desp; _lastCatTot=total;
-  var pieWrap=document.getElementById('catPieWrap');
   var MAXB=8;
   if(itens.length>MAXB){
     var resto=itens.slice(MAXB-1).reduce(function(a,b){return a+b.v;},0);
@@ -4657,24 +4528,6 @@ function renderCatBars(desp,total){
     itens=itens.slice(0,MAXB-1); itens.push({nome:'Outros',v:resto,n:nOut});
   }
   var soma=itens.reduce(function(a,b){return a+b.v;},0);
-  if((prefs.catStyle||'barras')==='pizza'){
-    // PIZZA: canvas NOVO a cada render (imune a estados congelados) e fora do arm de rolagem
-    box.style.display='none';
-    if(pieWrap){
-      try{dc('pie');}catch(e){}
-      var CORES_P=['#C9A84C','#7B93C4','#C46B8A','#D8CBA8','#8FBF9F','#A98FD4','#C4A07B','#8FA6BF'];
-      pieWrap.style.display='';
-      pieWrap.innerHTML='<div class="leg" id="legend-pie"></div><div style="position:relative;height:230px"><canvas id="pieChart"></canvas></div>';
-      document.getElementById('legend-pie').innerHTML=itens.map(function(x,i){
-        var pc=soma>0?Math.round(x.v/soma*100):0;
-        return '<span class="li"><span class="ld" style="background:'+CORES_P[i%CORES_P.length]+'"></span>'+esc(x.nome)+' '+pc+'%</span>';
-      }).join('');
-      var cvP=document.getElementById('pieChart');
-      cvP.dataset.chartArmed='1'; // não participa da animação por rolagem
-      charts['pie']=new Chart(cvP,{type:'doughnut',data:{labels:itens.map(function(x){return x.nome;}),datasets:[{data:itens.map(function(x){return Math.round(x.v*100)/100;}),backgroundColor:itens.map(function(_,i){return CORES_P[i%CORES_P.length];}),borderWidth:2,borderColor:_chartCardBg()}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.label+': '+fmt(c.raw);}}}}}});
-    }
-  }else{
-  if(pieWrap){ try{dc('pie');}catch(e){} pieWrap.innerHTML=''; pieWrap.style.display='none'; }
   box.style.display='';
   var cores=['#C9A84C','#7B93C4','#D8CBA8','#C46B8A','#8FBF9F','#A98FD4','#C4A07B','#8FA6BF'];
   var maior=itens[0].v||1;
@@ -4689,7 +4542,6 @@ function renderCatBars(desp,total){
       +'<div class="catbar-track"><div class="catbar-fill" style="width:'+w+'%;background:'+cores[i%cores.length]+'"></div></div>'
     +'</div>';
   }).join('');
-  }
   // recomendação: onde um corte pequeno rende mais
   var ins=document.getElementById('catInsight');
   if(ins){
