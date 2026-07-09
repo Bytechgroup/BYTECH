@@ -105,6 +105,31 @@ body{font-family:var(--font-b);background:var(--bg-app);color:var(--text1);min-h
 .nav-emoji{font-size:16px;line-height:1;display:inline-flex;width:20px;justify-content:center;color:var(--gold3,#C9A84C)}
 .nav-tab:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05)}
 .nav-tab.active{background:rgba(212,178,76,.14);color:var(--gold)}
+
+/* ===== SELETOR DE MÊS GLOBAL ===== */
+.sb-mes{width:100%;margin-top:16px;padding-top:14px;border-top:1px solid rgba(201,168,76,.14)}
+.sb-mes-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:9px}
+.sb-mes-lbl{font-family:var(--font-d);font-size:12.5px;font-weight:700;color:var(--gold3);letter-spacing:.05em;text-transform:uppercase;flex:1;text-align:center}
+.sb-mes-nav{width:24px;height:24px;border:1px solid rgba(201,168,76,.28);background:transparent;color:var(--gold3);border-radius:6px;cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s}
+.sb-mes-nav:hover{background:rgba(201,168,76,.16);border-color:var(--gold)}
+.sb-mes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.mes-btn{border:1px solid transparent;background:rgba(255,255,255,.045);color:rgba(255,255,255,.55);font-family:var(--font-b);font-size:10.5px;font-weight:600;padding:6px 0;border-radius:6px;cursor:pointer;transition:all .16s;letter-spacing:.03em}
+.mes-btn:hover{background:rgba(201,168,76,.14);color:var(--gold3)}
+.mes-btn.on{background:var(--gold);color:#171410;border-color:var(--gold)}
+.mes-btn.hoje::after{content:'';display:block;width:3px;height:3px;border-radius:50%;background:currentColor;margin:2px auto -3px;opacity:.6}
+
+/* barra de mês no mobile (a topbar some abaixo de 768px) */
+.mes-mobile{display:none}
+@media(max-width:768px){
+  .mes-mobile{
+    display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:250;
+    background:var(--bg-app);padding:9px .75rem;border-bottom:1px solid var(--border);
+  }
+  .mes-mobile .sb-mes-nav{width:28px;height:28px;font-size:14px}
+  .mes-mobile-strip{display:flex;gap:5px;overflow-x:auto;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .mes-mobile-strip::-webkit-scrollbar{display:none}
+  .mes-mobile-strip .mes-btn{padding:6px 12px;flex-shrink:0;font-size:11.5px}
+}
 .tb-right{display:flex;flex-direction:column;margin-top:auto;width:100%;gap:2px}
 .tb-profile{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:rgba(255,255,255,.04);margin-bottom:6px}
 .tb-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold3));display:flex;align-items:center;justify-content:center;color:var(--black);font-weight:800;font-size:15px;flex-shrink:0;background-size:cover;background-position:center;overflow:hidden}
@@ -865,6 +890,16 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
       <button class="nav-tab" id="tab-objetivos" onclick="showPatFromNav('objetivos',this)"><span class="nav-emoji"><i class="ti ti-target"></i></span> Objetivos</button>
       <button class="nav-tab" id="tab-dashboard" onclick="showPage('dashboard',this)"><span class="nav-emoji"><i class="ti ti-chart-bar"></i></span> Dashboard</button>
     </div>
+
+    <!-- SELETOR DE MÊS GLOBAL: vale para todas as abas -->
+    <div class="sb-mes" id="sbMes">
+      <div class="sb-mes-head">
+        <button class="sb-mes-nav" onclick="mesPrev()" title="Mês anterior">‹</button>
+        <div class="sb-mes-lbl" id="sbMesLbl">—</div>
+        <button class="sb-mes-nav" onclick="mesNext()" title="Próximo mês">›</button>
+      </div>
+      <div class="sb-mes-grid" id="sbMesGrid"></div>
+    </div>
     <div class="tb-right">
       <div id="sync-status" onclick="mostrarSyncDebug()" title="Toque para ver o diagnóstico" style="font-size:10px;text-align:center;min-height:14px;margin-bottom:4px;transition:color .3s;cursor:pointer"></div>
       <div class="sb-saldo" id="sbSaldoCard" onclick="showPage('dashboard',document.getElementById('tab-dashboard'))" title="Ver detalhes no dashboard">
@@ -891,11 +926,17 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
     </div>
   </div>
 
+  <!-- SELETOR DE MÊS (mobile) -->
+  <div class="mes-mobile" id="mesMobile">
+    <button class="sb-mes-nav" onclick="mesPrev()" aria-label="Mês anterior">‹</button>
+    <div class="mes-mobile-strip" id="mesMobileStrip"></div>
+    <button class="sb-mes-nav" onclick="mesNext()" aria-label="Próximo mês">›</button>
+  </div>
+
   <!-- LANÇAMENTOS -->
   <div class="page active" id="page-entrada">
     <div class="ph">Lançamentos Mensais</div>
     <div class="ps">Registre receitas e despesas — nome, meio de pagamento, valor planejado vs real, data e parcelas</div>
-    <div class="mtabs" id="entryMonthTabs"></div>
     <div class="entry-stack">
       <div class="card">
         <div class="ct"><div class="bar" style="background:var(--gold)"></div> Receitas</div>
@@ -969,7 +1010,6 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
   <div class="page" id="page-imprevistos">
     <div class="ph">Imprevistos</div>
     <div class="ps">Gastos inesperados por mes — grafico exclusivo no dashboard</div>
-    <div class="mtabs" id="imprevMonthTabs"></div>
     <div style="max-width:700px;margin:0 auto">
       <div class="card" style="margin-bottom:14px">
         <div class="ct"><div class="bar" style="background:var(--danger)"></div> Adicionar imprevisto</div>
@@ -1002,7 +1042,6 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
       <button class="pat-tab" id="ptab-poupanca" onclick="showPatTab('poupanca',this)" style="display:none">Poupanca</button>
       <button class="pat-tab" id="ptab-objetivos" onclick="showPatTab('objetivos',this)" style="display:none">Objetivos</button>
     </div>
-    <div class="mtabs" id="invMonthTabsTop" style="margin:-4px 0 1.1rem;display:none"></div>
 
     <!-- TAB: SALDOS -->
     <div class="pat-section active" id="patsec-saldos">
@@ -1039,7 +1078,6 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
       <div class="card" style="max-width:700px;margin-top:14px">
         <div class="ct"><div class="bar" style="background:var(--gold)"></div> Investimentos mês a mês</div>
         <p style="font-size:12px;color:var(--text3);margin:-2px 0 12px;line-height:1.5">Escolha o mês. O <strong>aporte</strong> é puxado sozinho das suas despesas chamadas <strong>"investimento"</strong> (na aba Lançamentos). Se quiser, detalhe a <strong>carteira por categoria</strong> abaixo — o saldo e o rendimento são calculados automaticamente.</p>
-        <div class="mtabs" id="invMonthTabs"></div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px">
           <div style="background:var(--card2);border-radius:10px;padding:11px 13px"><div style="font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px">Saldo investido</div><div id="invm-saldo" style="font-family:var(--font-d);font-size:18px;font-weight:700;color:var(--gold3)">R$ 0,00</div></div>
           <div style="background:var(--card2);border-radius:10px;padding:11px 13px"><div style="font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px">Aporte do mês <span title="Puxado automaticamente das despesas chamadas &quot;investimento&quot;" style="color:#2196F3;font-weight:700"> • auto</span></div><div id="invm-aporte" style="font-family:var(--font-d);font-size:18px;font-weight:700;color:#2196F3">R$ 0,00</div></div>
@@ -1157,9 +1195,8 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
     <div id="overdue-alerts" style="display:none;background:var(--card);border:1px solid rgba(224,106,106,.3);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:16px"></div>
 
     <div class="ph">Dashboard</div>
-    <div class="ps">Visao consolidada — selecione o mes de referencia</div>
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
-      <div class="mtabs" id="dashMonthBtns" style="margin-bottom:0"></div>
+    <div class="ps">Visao consolidada — mes selecionado no menu lateral</div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
       <div id="dash-view-filter" style="display:flex;gap:4px;align-items:center">
         <button class="dash-filter-btn active" id="dfilter-mes" onclick="setDashView('mes',this)">Por mês</button>
         <button class="dash-filter-btn" id="dfilter-ano" onclick="setDashView('ano',this)">Ano inteiro</button>
@@ -2117,13 +2154,51 @@ function closeMaisSheet(){
   document.getElementById('maisOverlay').classList.remove('open');
 }
 
-/* TABS */
-function buildETabs(){document.getElementById('entryMonthTabs').innerHTML=MONTHS.map((m,i)=>`<button class="mtab${i===curEM?' active':''}" onclick="selEM(${i})">${m}</button>`).join('');}
-function selEM(m){saveMS();curEM=m;buildETabs();loadMForm(m);curCP=m;try{renderContasPagar();}catch(e){}}
-function buildDTabs(){document.getElementById('dashMonthBtns').innerHTML=MONTHS.map((m,i)=>`<button class="mtab${i===curDM?' active':''}" onclick="selDM(${i})">${m}</button>`).join('');}
-function selDM(m){curDM=m;curCP=m;buildDTabs();renderDash();}
-function buildITabs(){document.getElementById('imprevMonthTabs').innerHTML=MONTHS.map((m,i)=>`<button class="mtab${i===curIM?' active':''}" onclick="selIM(${i})">${m}</button>`).join('');}
-function selIM(m){curIM=m;buildITabs();renderIList();curCP=m;try{renderContasPagar();}catch(e){}}
+/* ===== MÊS GLOBAL =====
+   Uma única fonte de verdade. Todas as abas (Lançamentos, Imprevistos,
+   Investimentos, Dashboard e Contas a Pagar) leem o mesmo mês. */
+var curMes=new Date().getMonth();
+
+function buildMonthPickers(){
+  var hoje=new Date().getMonth();
+  var html=MONTHS.map(function(nm,i){
+    return '<button class="mes-btn'+(i===curMes?' on':'')+(i===hoje?' hoje':'')+'" onclick="setMesGlobal('+i+')">'+nm+'</button>';
+  }).join('');
+  var g=document.getElementById('sbMesGrid'); if(g)g.innerHTML=html;
+  var s=document.getElementById('mesMobileStrip'); if(s)s.innerHTML=html;
+  var l=document.getElementById('sbMesLbl'); if(l)l.textContent=MONTHS_FULL[curMes];
+  // no mobile, deixa o mês ativo visível na tira horizontal
+  try{
+    var on=s&&s.querySelector('.mes-btn.on');
+    if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest',inline:'center'});
+  }catch(e){}
+}
+
+function setMesGlobal(m){
+  m=parseInt(m,10); if(isNaN(m)||m<0||m>11)return;
+  // salva o formulário do mês que está saindo (curEM ainda é o antigo)
+  try{saveMS();}catch(e){}
+  curMes=m; curEM=m; curDM=m; curIM=m; curInvM=m; curCP=m;
+  buildMonthPickers();
+  try{loadMForm(m);}catch(e){}
+  try{renderIList();}catch(e){}
+  try{if(typeof buildInvMonthTabs==='function')buildInvMonthTabs();}catch(e){}
+  try{if(typeof renderInvMensal==='function')renderInvMensal();}catch(e){}
+  try{renderDash();}catch(e){}
+  try{renderContasPagar();}catch(e){}
+  try{updateSidebarSaldo();}catch(e){}
+  try{_armChartSoon();}catch(e){}
+}
+function mesPrev(){setMesGlobal((curMes+11)%12);}
+function mesNext(){setMesGlobal((curMes+1)%12);}
+
+/* TABS — as barras por aba sumiram; os seletores antigos apontam para o mês global */
+function buildETabs(){buildMonthPickers();}
+function buildDTabs(){buildMonthPickers();}
+function buildITabs(){buildMonthPickers();}
+function selEM(m){setMesGlobal(m);}
+function selDM(m){setMesGlobal(m);}
+function selIM(m){setMesGlobal(m);}
 
 /* MEIO SELECT */
 function mkMeio(val){return `<select class="di" onchange="onMeioD(this)">${MEIOS.map(m=>`<option${val===m?' selected':''}>${m}</option>`).join('')}</select>`;}
@@ -3360,18 +3435,18 @@ function renderOverdueAlerts(m){
     }).join('');
 }
 
-function buildDTabs(){document.getElementById('dashMonthBtns').innerHTML=MONTHS.map((m,i)=>`<button class="mtab${i===curDM?' active':''}" onclick="selDM(${i})">${m}</button>`).join('');}
-function selDM(m){curDM=m;curCP=m;buildDTabs();renderDash();}
 
 var dashView='mes';
 function setDashView(v,btn){
   dashView=v;
   document.querySelectorAll('.dash-filter-btn').forEach(function(b){b.classList.remove('active');});
   if(btn)btn.classList.add('active');
-  // No modo ano, as abas de mes ficam desabilitadas visualmente
-  var tabs=document.getElementById('dashMonthBtns');
-  if(tabs)tabs.style.opacity=(v==='ano')?'.35':'1';
-  if(tabs)tabs.style.pointerEvents=(v==='ano')?'none':'auto';
+  // No modo ano, o seletor de mes fica desabilitado visualmente
+  ['sbMes','mesMobile'].forEach(function(id){
+    var el=document.getElementById(id); if(!el)return;
+    el.style.opacity=(v==='ano')?'.35':'1';
+    el.style.pointerEvents=(v==='ano')?'none':'auto';
+  });
   renderDash();
 }
 // Agrega os 12 meses num unico objeto {receitas, despesas} para a visao anual
@@ -3523,7 +3598,7 @@ function buildInvMonthTabs(){
   var html=MONTHS.map(function(m,i){return '<button class="mtab'+(i===curInvM?' active':'')+'" onclick="selInvM('+i+')">'+m+'</button>';}).join('');
   ['invMonthTabs','invMonthTabsTop'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML=html;});
 }
-function selInvM(mi){curInvM=mi;buildInvMonthTabs();renderInvMensal();}
+function selInvM(mi){setMesGlobal(mi);}
 function setAporteMes(){if(!fixed.aporteMes)fixed.aporteMes={};fixed.aporteMes[curInvM]=parseBR(document.getElementById('invm-aporte').value)||0;saveF(fixed);renderInvMensalCards();}
 
 function addInvMensal(){
@@ -3658,8 +3733,8 @@ function animarSaldoSidebar(){
 
 /* ===== CONTAS A PAGAR (painel direito) ===== */
 var curCP=new Date().getMonth();
-function cpPrev(){curCP=(curCP+11)%12;renderContasPagar();}
-function cpNext(){curCP=(curCP+1)%12;renderContasPagar();}
+function cpPrev(){setMesGlobal((curCP+11)%12);}
+function cpNext(){setMesGlobal((curCP+1)%12);}
 function _effAmtCP(d){return d.parcelas>1&&d.meio==='Credito'&&!d.isParcel&&d.valorParc>0?d.valorParc:(d.real||d.plan||0);}
 function _isPaidCP(d){var e=_effAmtCP(d);if(!(e>0))return !!d.pago;return d.pago||(d.pagoParcial>0&&d.pagoParcial>=e-0.01);}
 function _ehParceladaCP(d){return d.meio==='Credito'&&(d.parcelas||1)>1&&!d.isParcel&&((d.real||d.plan||0)>0);}
