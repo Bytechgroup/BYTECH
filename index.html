@@ -108,6 +108,41 @@ body{font-family:var(--font-b);background:var(--bg-app);color:var(--text1);min-h
 .nav-tab:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05)}
 .nav-tab.active{background:rgba(212,178,76,.14);color:var(--gold)}
 
+/* ===== TUTORIAL DE PRIMEIRO ACESSO ===== */
+.tut-spot{
+  position:fixed;z-index:100000;pointer-events:none;
+  border-radius:12px;
+  box-shadow:0 0 0 9999px rgba(4,4,3,.78),0 0 0 3px rgba(201,168,76,.9),0 0 26px rgba(201,168,76,.35);
+  transition:all .34s cubic-bezier(.3,.9,.3,1);
+}
+.tut-spot.tut-spot-off{box-shadow:0 0 0 9999px rgba(4,4,3,.78);border-radius:0}
+.tut-block{position:fixed;inset:0;z-index:100001;background:transparent}
+.tut-card{
+  position:fixed;z-index:100002;width:min(360px,calc(100vw - 28px));
+  background:var(--card2,#1C1C1C);border:1px solid rgba(201,168,76,.45);
+  border-radius:14px;padding:18px 18px 14px;box-shadow:0 18px 50px rgba(0,0,0,.55);
+  transition:top .34s cubic-bezier(.3,.9,.3,1),left .34s cubic-bezier(.3,.9,.3,1);
+}
+.tut-step-n{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--gold3);margin-bottom:6px}
+.tut-title{font-family:var(--font-d);font-size:17px;font-weight:800;color:var(--text1);margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.tut-title i{color:var(--gold3)}
+.tut-text{font-size:13.5px;line-height:1.55;color:var(--text2)}
+.tut-text b{color:var(--text1)}
+.tut-dots{display:flex;gap:5px;margin:13px 0 12px}
+.tut-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.18);transition:all .25s}
+.tut-dot.on{background:var(--gold);width:18px;border-radius:3px}
+.tut-btns{display:flex;align-items:center;gap:8px}
+.tut-skip{background:none;border:none;color:var(--text3);font-size:12.5px;cursor:pointer;padding:8px 4px;margin-right:auto}
+.tut-skip:hover{color:var(--text1);text-decoration:underline}
+.tut-prev,.tut-next{border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;padding:9px 14px;font-family:var(--font-d)}
+.tut-prev{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.tut-prev:hover{border-color:var(--gold3);color:var(--text1)}
+.tut-next{background:var(--gold);border:1px solid var(--gold);color:#171410}
+.tut-next:hover{background:var(--gold2)}
+@media(max-width:768px){
+  .tut-card{left:50%!important;transform:translateX(-50%);bottom:16px;top:auto!important;width:calc(100vw - 20px)}
+}
+
 /* ===== SELETOR DE MÊS GLOBAL ===== */
 .sb-mes{width:100%;margin-top:16px;padding-top:14px;border-top:1px solid rgba(201,168,76,.14)}
 .sb-mes-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:9px}
@@ -1356,6 +1391,9 @@ button:active,.mtab:active,.cp-btn:active,.add-row-btn:active,.tbtn:active,.paid
   <div class="page" id="page-config">
     <div class="pt">Configurações</div>
     <div class="ps">Personalize a aparência, escolha o que aparece na tela e gerencie sua conta</div>
+    <button onclick="iniciarTutorial(true)" style="margin:-4px 0 1.1rem;background:transparent;border:1px solid rgba(201,168,76,.4);color:var(--gold3);border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--font-d)">
+      <i class="ti ti-route"></i> Ver o tutorial novamente
+    </button>
 
     <div class="cfg-grid">
       <!-- APARÊNCIA -->
@@ -1594,8 +1632,6 @@ let _chartsRaw={},charts=new Proxy(_chartsRaw,{set:function(t,k,v){t[k]=v;try{_a
         var ex=Orig.getChart(el);
         if(ex)ex.destroy();
       }catch(e){}
-      // Trava de segurança: nenhum gráfico nasce com animação (pintura síncrona sempre)
-      try{ cfg=cfg||{}; cfg.options=cfg.options||{}; cfg.options.animation=false; }catch(e){}
       return new Orig(ctx,cfg);
     }
     ChartSeguro.prototype=Orig.prototype;
@@ -1957,6 +1993,8 @@ function initApp(){
   attachMoneyFormatting();
   try{updateSidebarSaldo();}catch(e){}
   try{renderContasPagar();}catch(e){}
+  // primeiro acesso? abre o tour guiado (dá um respiro pra tela assentar)
+  setTimeout(function(){try{iniciarTutorial(false);}catch(e){}},700);
 }
 
 /* TEMA CLARO/ESCURO */
@@ -2145,11 +2183,9 @@ function saveDash(){
   saveD(data);
 }
 function flushDashInputs(){
-  // Regrava apenas os campos que o USUÁRIO editou (data-dirty). Antes, todo
-  // input com valor era regravado ao trocar de página — e um valor antigo
-  // renderizado na tabela desfazia o "pago" marcado pelo painel Contas a Pagar.
+  // Force-save any pagoParcial input that has a value but hasn't triggered onchange yet
   document.querySelectorAll('input[data-cat][data-mes]').forEach(function(el){
-    if(el.dataset.dirty==='1'&&el.value!==''&&el.value!==undefined){savePagoParcialEnc(el);el.dataset.dirty='';}
+    if(el.value!==''&&el.value!==undefined){savePagoParcialEnc(el);}
   });
 }
 function showPage(p,btn){
@@ -2685,9 +2721,7 @@ function saveMS(){
   })();
   var _fixDesativar=[];
   des.forEach(function(d){
-    // Casa a entrada anterior do MESMO tipo (parcela com parcela, compra com compra),
-    // senão parcelas como "carro (2/3)" perdiam o "pago" ao trocar de mês/salvar o form.
-    var prev=prevDes.find(function(p){return p.nome===d.nome&&(!!p.isParcel)===(!!d.isParcel);});
+    var prev=prevDes.find(function(p){return p.nome===d.nome&&!p.isParcel;});
     if(prev){
       // O checkbox .paid-check do formulário é display:none — o DOM NUNCA é fonte de verdade
       // para "pago". Quem manda são os dados (alterados pelo painel Contas a Pagar).
@@ -3871,9 +3905,9 @@ function _renderDashNow(){
     '<div class="kpi"><div class="kpi-lbl">Saldo</div><div class="kpi-val '+(sal>=0?'green':'red')+'">'+fmt(sal)+'</div><div class="kpi-sub '+(sal>=0?'green':'red')+'">'+(sal>=0?'Positivo':'Negativo')+'</div></div>'+
     '<div class="kpi"><div class="kpi-lbl">Economia</div><div class="kpi-val">'+eco+'%</div><div class="kpi-sub">da receita mensal</div></div>';
 
-  try{ renderCategoryRings(md); }catch(e){ console.error('rings',e); }
-  try{ updateBudgetBar(rec, des, impT); }catch(e){ console.error('budgetBar',e); }
-  try{ renderPatHistDash(); }catch(e){ console.error('patHistDash',e); }
+  renderCategoryRings(md);
+  updateBudgetBar(rec, des, impT);
+  renderPatHistDash();
 
   /* DIFF */
   var dR=rec-rPl,dD=des-dPl;
@@ -4102,7 +4136,7 @@ function _renderDashNow(){
     var displayVal=hasCredit?c.valorParc:(totalMes>0?totalMes:c.total);
     var totalHint=hasCredit?'<div style="font-size:10px;color:var(--text3);margin-top:1px">Total: '+fmt(c.total)+'</div>':'';
     var valCell=c.isObj?'<div style="font-family:var(--font-d);font-size:14px;font-weight:600">'+fmt(c.total)+'</div><div style="font-size:11px;color:#6B4F8B;margin-top:2px">Objetivo '+c.objPct+'%</div>':
-      '<div style="font-family:var(--font-d);font-size:14px;font-weight:600">'+fmt(displayVal)+'</div>'+totalHint+(totalMes>0?'<div style="display:flex;align-items:center;gap:5px;margin-top:4px"><span style="font-size:10px;color:var(--text3)">Pago:</span><input type="number" min="0" step="0.01" value="'+(pagoParcialVal>0?pagoParcialVal:'')+'" placeholder="0,00" data-cat="'+safeName2+'" data-mes="'+safeEntryM+'" oninput="this.dataset.dirty=\'1\';savePagoParcialEnc(this)" onchange="this.dataset.dirty=\'1\';savePagoParcialEnc(this)" style="width:80px;padding:3px 6px;border:1px solid rgba(0,0,0,.09);border-radius:5px;font-size:11px;background:var(--bg-surface);color:var(--text1);text-align:right"></div>':'');
+      '<div style="font-family:var(--font-d);font-size:14px;font-weight:600">'+fmt(displayVal)+'</div>'+totalHint+(totalMes>0?'<div style="display:flex;align-items:center;gap:5px;margin-top:4px"><span style="font-size:10px;color:var(--text3)">Pago:</span><input type="number" min="0" step="0.01" value="'+(pagoParcialVal>0?pagoParcialVal:'')+'" placeholder="0,00" data-cat="'+safeName2+'" data-mes="'+safeEntryM+'" oninput="savePagoParcialEnc(this)" onchange="savePagoParcialEnc(this)" style="width:80px;padding:3px 6px;border:1px solid rgba(0,0,0,.09);border-radius:5px;font-size:11px;background:var(--bg-surface);color:var(--text1);text-align:right"></div>':'');
     var barColor3=isPago?'#2D7A4F':isPartial?'#C9A84C':'#8B2020';
     var progCell=c.isObj?'<div style="background:rgba(0,0,0,.05);border-radius:6px;height:8px;overflow:hidden"><div style="height:100%;border-radius:6px;background:#6B4F8B;width:'+c.objPct+'%;transition:width .5s"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">'+c.objPct+'% concluido</div>':
       totalMes>0?'<div style="background:rgba(0,0,0,.05);border-radius:6px;height:8px;overflow:hidden"><div style="height:100%;border-radius:6px;background:'+barColor3+';width:'+pctPagoVal+'%;transition:width .5s"></div></div><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px"><span style="color:'+barColor3+';font-weight:600">'+pctPagoVal+'%</span><span>'+fmt(pagoParcialVal)+' / '+fmt(totalMes)+'</span></div>':'<span style="font-size:11px;color:var(--text3)">—</span>';
@@ -4176,7 +4210,7 @@ function _renderDashNow(){
         var vivo=null; try{vivo=Chart.getChart(cv);}catch(e){}
         if(!vivo)falta=true;
       });
-      if(falta&&!_rdRetry){ _rdRetry=true; setTimeout(function(){_rdRetry=false;},5000); console.warn('[dash] canvas visível sem chart — refazendo render'); renderDash(); }
+      if(falta&&!_rdRetry){ _rdRetry=true; console.warn('[dash] canvas visível sem chart — refazendo render'); renderDash(); }
       else if(falta){ console.error('[dash] canvas visível sem chart após retry'); }
       else _rdRetry=false;
     },80);
@@ -4184,7 +4218,152 @@ function _renderDashNow(){
 }
 var _rdRetry=false;
 
-// ===== CONEXÃO SUPABASE + GUARDIÃO DE LOGIN =====
+// ===== TUTORIAL DE PRIMEIRO ACESSO =====
+// Mostra um tour guiado na primeira visita (flag no localStorage).
+// Pode ser pulado a qualquer momento e revisto em Configurações.
+var TUT_KEY='bt_tutorial_v1';
+var _tutI=0,_tutOn=false;
+
+var TUT_STEPS=[
+ {icon:'ti-sparkles',title:'Bem-vindo ao BT Financeiro!',
+  text:'Este é um tour rápido de <b>1 minuto</b> pelas principais funções. Você pode pular quando quiser e rever depois em <b>Configurações</b>.'},
+ {icon:'ti-calendar',target:'#sbMes',mTarget:'#mesMobile',
+  title:'Mês selecionado',
+  text:'Escolha aqui o mês de trabalho. <b>Vale para o app inteiro</b>: lançamentos, gráficos e contas a pagar seguem sempre o mês marcado. As setas ‹ › avançam e voltam.'},
+ {icon:'ti-wallet',target:'#tab-entrada',mTarget:'#bn-entrada',page:'entrada',
+  title:'Lançamentos',
+  text:'O coração do app. Registre <b>receitas e despesas</b> do mês com valor <b>planejado vs real</b>, meio de pagamento e data. Compras no <b>crédito parcelado</b> (2x ou mais) são distribuídas automaticamente nos meses seguintes.'},
+ {icon:'ti-device-floppy',target:'#page-entrada .save-btn',mTarget:'#page-entrada .save-btn',page:'entrada',
+  title:'Salvar o mês',
+  text:'Depois de lançar ou editar, clique em <b>Salvar mes</b> para gravar. Com login ativo, os dados também sobem para a nuvem e sincronizam entre aparelhos.'},
+ {icon:'ti-checklist',target:'#rightbar',mTarget:null,
+  title:'Contas a Pagar',
+  text:'Este painel lista as despesas do mês como uma <b>checklist</b>: marque o que já foi pago e acompanhe o total pago vs pendente. Em compras parceladas dá para quitar <b>uma parcela</b> ou o <b>total</b>.'},
+ {icon:'ti-alert-triangle',target:'#tab-imprevistos',mTarget:'#bn-imprevistos',page:'imprevistos',
+  title:'Imprevistos',
+  text:'Gastos fora do plano (conserto do carro, remédio...) entram aqui, separados do orçamento normal — assim você enxerga <b>quanto o inesperado pesa</b> no seu mês.'},
+ {icon:'ti-chart-line',target:'#tab-fixo',mTarget:'#bn-fixo',page:'fixo',
+  title:'Investimentos',
+  text:'Controle <b>aportes mês a mês</b>, carteira por categoria e rendimento. Os gráficos desta aba mostram a evolução do que você investiu.'},
+ {icon:'ti-pig-money',target:'#tab-poupanca',mTarget:null,
+  title:'Poupança & Objetivos',
+  text:'Acompanhe sua <b>reserva</b> e crie <b>objetivos</b> (viagem, entrada do apê...) com meta e progresso. O app calcula quanto falta e o histórico do seu patrimônio.'},
+ {icon:'ti-chart-bar',target:'#tab-dashboard',mTarget:'#bn-dashboard',page:'dashboard',
+  title:'Dashboard',
+  text:'Tudo vira <b>gráfico automaticamente</b>: receita vs despesa, gastos por categoria, dia a dia do mês, imprevistos e mais — sempre do mês selecionado no menu.'},
+ {icon:'ti-calendar-stats',target:'#dash-view-filter',mTarget:'#dash-view-filter',page:'dashboard',
+  title:'Mês ou ano inteiro',
+  text:'Este seletor alterna o dashboard entre a visão do <b>mês</b> e o <b>consolidado do ano</b> — ótimo para ver a foto grande.'},
+ {icon:'ti-settings',target:'#btnConfigSide',mTarget:null,
+  title:'Configurações',
+  text:'Personalize <b>tema</b>, gráficos visíveis, abas e seu perfil. É aqui também que você <b>revê este tutorial</b> quando quiser.'},
+ {icon:'ti-confetti',title:'Pronto!',
+  text:'É isso — comece lançando as <b>receitas e despesas</b> do mês atual e o resto se monta sozinho. Boa organização! 💛'}
+];
+
+function _tutMobile(){return window.matchMedia&&window.matchMedia('(max-width:768px)').matches;}
+function _tutEls(){
+  var sp=document.getElementById('tutSpot'),bl=document.getElementById('tutBlock'),cd=document.getElementById('tutCard');
+  if(!sp){
+    sp=document.createElement('div');sp.id='tutSpot';sp.className='tut-spot';document.body.appendChild(sp);
+    bl=document.createElement('div');bl.id='tutBlock';bl.className='tut-block';document.body.appendChild(bl);
+    cd=document.createElement('div');cd.id='tutCard';cd.className='tut-card';document.body.appendChild(cd);
+    bl.addEventListener('click',function(ev){ev.stopPropagation();}); // bloqueia cliques por baixo
+  }
+  return {sp:sp,bl:bl,cd:cd};
+}
+function iniciarTutorial(force){
+  if(!force&&localStorage.getItem(TUT_KEY))return;
+  _tutI=0;_tutOn=true;
+  document.addEventListener('keydown',_tutKeys);
+  window.addEventListener('resize',_tutRepos);
+  window.addEventListener('scroll',_tutRepos,true);
+  _tutShow();
+}
+function _tutKeys(e){
+  if(!_tutOn)return;
+  if(e.key==='Escape')encerrarTutorial(false);
+  else if(e.key==='ArrowRight'||e.key==='Enter')tutProx();
+  else if(e.key==='ArrowLeft')tutVolta();
+}
+function _tutRepos(){if(_tutOn)_tutPos();}
+function encerrarTutorial(concluiu){
+  _tutOn=false;
+  try{localStorage.setItem(TUT_KEY,concluiu?'done':'skip');}catch(e){}
+  document.removeEventListener('keydown',_tutKeys);
+  window.removeEventListener('resize',_tutRepos);
+  window.removeEventListener('scroll',_tutRepos,true);
+  ['tutSpot','tutBlock','tutCard'].forEach(function(id){var el=document.getElementById(id);if(el)el.remove();});
+}
+function tutProx(){ if(_tutI>=TUT_STEPS.length-1){encerrarTutorial(true);return;} _tutI++;_tutShow(); }
+function tutVolta(){ if(_tutI>0){_tutI--;_tutShow();} }
+
+function _tutAlvo(st){
+  var sel=_tutMobile()?(st.mTarget!==undefined?st.mTarget:st.target):st.target;
+  if(!sel)return null;
+  var el=document.querySelector(sel);
+  if(!el)return null;
+  var r=el.getBoundingClientRect();
+  if(!(r.width>0&&r.height>0))return null; // invisível neste layout: mostra o passo sem holofote
+  return el;
+}
+function _tutShow(){
+  var st=TUT_STEPS[_tutI],ui=_tutEls();
+  // troca de página quando o passo pede (sincroniza o botão da nav)
+  try{
+    if(st.page==='entrada'||st.page==='imprevistos'||st.page==='fixo'||st.page==='dashboard'){
+      var pg=document.getElementById('page-'+st.page);
+      if(pg&&!pg.classList.contains('active'))showPage(st.page,document.getElementById('tab-'+st.page));
+    }
+  }catch(e){}
+  var alvo=_tutAlvo(st);
+  if(alvo&&alvo.scrollIntoView){try{alvo.scrollIntoView({block:'nearest',behavior:'instant'});}catch(e){try{alvo.scrollIntoView();}catch(e2){}}}
+  // conteúdo do card
+  var ultima=_tutI===TUT_STEPS.length-1;
+  ui.cd.innerHTML=
+    '<div class="tut-step-n">Passo '+(_tutI+1)+' de '+TUT_STEPS.length+'</div>'
+    +'<div class="tut-title"><i class="ti '+st.icon+'"></i>'+st.title+'</div>'
+    +'<div class="tut-text">'+st.text+'</div>'
+    +'<div class="tut-dots">'+TUT_STEPS.map(function(_,i){return '<span class="tut-dot'+(i===_tutI?' on':'')+'"></span>';}).join('')+'</div>'
+    +'<div class="tut-btns">'
+      +'<button class="tut-skip" onclick="encerrarTutorial(false)">Pular tutorial</button>'
+      +(_tutI>0?'<button class="tut-prev" onclick="tutVolta()">Voltar</button>':'')
+      +'<button class="tut-next" onclick="tutProx()">'+(ultima?'Concluir ✓':'Próximo →')+'</button>'
+    +'</div>';
+  // dá um instante para a troca de página assentar antes de medir
+  setTimeout(_tutPos,60);
+}
+function _tutPos(){
+  var st=TUT_STEPS[_tutI];if(!st)return;
+  var ui=_tutEls(),alvo=_tutAlvo(st);
+  var vw=window.innerWidth,vh=window.innerHeight;
+  if(alvo){
+    var r=alvo.getBoundingClientRect(),pad=7;
+    ui.sp.classList.remove('tut-spot-off');
+    ui.sp.style.left=(r.left-pad)+'px';ui.sp.style.top=(r.top-pad)+'px';
+    ui.sp.style.width=(r.width+pad*2)+'px';ui.sp.style.height=(r.height+pad*2)+'px';
+  }else{
+    // sem alvo (passo geral ou elemento oculto): só escurece, holofote fechado no centro
+    ui.sp.classList.add('tut-spot-off');
+    ui.sp.style.left=(vw/2)+'px';ui.sp.style.top=(vh/2)+'px';ui.sp.style.width='0px';ui.sp.style.height='0px';
+  }
+  // posiciona o card (no mobile o CSS prende embaixo)
+  if(_tutMobile()){ui.cd.style.top='auto';return;}
+  var cw=ui.cd.offsetWidth||360,chh=ui.cd.offsetHeight||220,x,y;
+  if(alvo){
+    var rr=alvo.getBoundingClientRect();
+    // tenta à direita, senão à esquerda, senão abaixo, senão acima
+    if(rr.right+16+cw<=vw){x=rr.right+16;y=rr.top;}
+    else if(rr.left-16-cw>=0){x=rr.left-16-cw;y=rr.top;}
+    else if(rr.bottom+14+chh<=vh){x=rr.left;y=rr.bottom+14;}
+    else{x=rr.left;y=rr.top-14-chh;}
+    x=Math.max(12,Math.min(x,vw-cw-12));
+    y=Math.max(12,Math.min(y,vh-chh-12));
+  }else{x=(vw-cw)/2;y=(vh-chh)/2;}
+  ui.cd.style.left=x+'px';ui.cd.style.top=y+'px';
+}
+
+
 var SB_URL='https://sroybgmfwcokxuidjfto.supabase.co';
 var SB_KEY='sb_publishable_yCwsKBzIOq_QvjaRFllrhA_EvlyfCww';
 var sb=null;
@@ -4281,28 +4460,6 @@ function _armCharts(){
     // nasceu 0x0 e agora tem espaço? redesenha no tamanho certo
     if(!ch.width||!ch.height){try{ch.resize();ch.update('none');}catch(e){}}
   });
-  // Rede de segurança extra: canvas do dashboard visível SEM gráfico vivo
-  // (chart morreu ou foi criado num canvas trocado) -> refaz o render.
-  // Com cooldown de 5s para nunca virar loop.
-  try{
-    var pgD=document.getElementById('page-dashboard');
-    if(pgD&&pgD.classList.contains('active')){
-      var morto=false;
-      ['corridaChart','diaChart','donutChart','compChart','lineChart','imprevChart'].forEach(function(id){
-        var cv2=document.getElementById(id); if(!cv2)return;
-        var r2=cv2.getBoundingClientRect();
-        if(!(r2.width>0&&r2.height>0))return; // card oculto: sem chart é esperado
-        var vivo=null; try{vivo=Chart.getChart(cv2);}catch(e){}
-        if(!vivo)morto=true;
-      });
-      var agora=Date.now();
-      if(morto&&(!window._lastAutoFix||agora-window._lastAutoFix>5000)){
-        window._lastAutoFix=agora;
-        console.warn('[vigia] canvas visível sem gráfico — refazendo render');
-        try{renderDash();}catch(e){}
-      }
-    }
-  }catch(e){}
   clearTimeout(_retryT);
   if(pendente&&_retryN<25){ _retryN++; _retryT=setTimeout(_armCharts,250); }
   else _retryN=0;
@@ -4541,14 +4698,9 @@ function applyPrefs(){
   h.classList.toggle('hide-emoji',!prefs.emojis);
   var ac=_ACCENTS[prefs.accent]||_ACCENTS.dourado;
   h.style.setProperty('--gold',ac.g);h.style.setProperty('--gold2',ac.g2);h.style.setProperty('--gold3',ac.g3);
-  /* IMPORTANTE: a animação dos GRÁFICOS fica SEMPRE desligada, independente
-     de prefs.animacoes. Com animação ligada, o Chart.js pinta o gráfico ao
-     longo de ~900ms — e qualquer re-render nesse intervalo (marcar pago,
-     trocar mês, eco do sync) interrompe a pintura e deixa o canvas em branco.
-     Toda a blindagem dos gráficos depende da pintura ser síncrona.
-     prefs.animacoes continua valendo para as animações de interface (CSS),
-     aplicadas acima via data-anim. */
-  try{ Chart.defaults.animation=false; }catch(e){}
+  try{
+    Chart.defaults.animation=(prefs.animacoes==='off')?false:{duration:(prefs.animacoes==='leve'?350:900),easing:'easeOutQuart'};
+  }catch(e){}
   // elementos opcionais
   h.classList.toggle('hide-saldo',!prefs.mostrarSaldo);
   h.classList.toggle('hide-contas',!prefs.mostrarContas);
